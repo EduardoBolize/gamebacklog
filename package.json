@@ -1,0 +1,37 @@
+{
+  "name": "gamebacklog",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local-first, open source game backlog and progress tracker.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm typecheck && pnpm --filter @gamebacklog/web build",
+    "start": "pnpm --filter @gamebacklog/server start",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @gamebacklog/server db:generate",
+    "db:migrate": "pnpm --filter @gamebacklog/server db:migrate",
+    "db:seed": "pnpm --filter @gamebacklog/server db:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}

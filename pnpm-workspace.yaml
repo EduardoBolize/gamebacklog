@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 blocks dependency install scripts by default; allow only what needs one.
+onlyBuiltDependencies:
+  - esbuild
+
+# better-sqlite3 >= 13 ships prebuilt N-API binaries inside the package, so nothing has to be
+# compiled. Without this, pnpm would see its binding.gyp and try `node-gyp rebuild`, which
+# needs a C++ toolchain most users don't have.
+ignoredBuiltDependencies:
+  - better-sqlite3
