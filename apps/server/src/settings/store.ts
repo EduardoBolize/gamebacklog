@@ -39,6 +39,11 @@ export function getSetting<T>(db: AppDatabase, definition: SettingDefinition<T>)
 
 export function setSetting<T>(db: AppDatabase, definition: SettingDefinition<T>, value: T): void {
   const parsed = definition.schema.parse(value);
+  if (parsed === null) {
+    // "No value" is the absence of the row, so reads fall back to the default.
+    db.delete(settings).where(eq(settings.key, definition.key)).run();
+    return;
+  }
   db.insert(settings)
     .values({ key: definition.key, value: parsed })
     .onConflictDoUpdate({ target: settings.key, set: { value: parsed, updatedAt: new Date() } })
