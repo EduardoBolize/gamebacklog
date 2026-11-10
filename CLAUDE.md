@@ -1,7 +1,7 @@
 # GameBacklog
 
 Memória do projeto para as próximas sessões. O plano completo, fase por fase, está em
-[PROMPT_CLAUDE_CODE.md](PROMPT_CLAUDE_CODE.md) — leia a fase em que for trabalhar antes de começar.
+[docs/PROMPT_CLAUDE_CODE.md](docs/PROMPT_CLAUDE_CODE.md) — leia a fase em que for trabalhar antes de começar.
 
 ## Visão
 
