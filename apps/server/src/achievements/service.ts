@@ -199,7 +199,10 @@ function loadAchievements(db: AppDatabase, gameId: string, playthroughId: string
   );
   // Most common first; achievements without a percentage go last, in catalog order.
   rows.sort(
-    (a, b) => (b.globalPercent ?? -1) - (a.globalPercent ?? -1) || a.sortOrder - b.sortOrder,
+    (a, b) =>
+      (b.globalPercent ?? -1) - (a.globalPercent ?? -1) ||
+      a.sortOrder - b.sortOrder ||
+      a.id.localeCompare(b.id),
   );
   return rows.map((row) => toAchievement(row, progress.get(row.id)));
 }

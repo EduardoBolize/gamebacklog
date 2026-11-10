@@ -23,7 +23,7 @@ export function listProgress(db: AppDatabase, playthroughId: string): ProgressEv
     .select()
     .from(progressEvents)
     .where(eq(progressEvents.playthroughId, playthroughId))
-    .orderBy(desc(progressEvents.occurredAt))
+    .orderBy(desc(progressEvents.occurredAt), progressEvents.id)
     .all()
     .map((row) => ({ id: row.id, rawText: row.rawText, occurredAt: row.occurredAt.toISOString() }));
 }
@@ -76,7 +76,7 @@ export function listSessions(db: AppDatabase, entryId: string): Session[] {
     .select()
     .from(sessions)
     .where(eq(sessions.libraryEntryId, entryId))
-    .orderBy(desc(sessions.startedAt))
+    .orderBy(desc(sessions.startedAt), sessions.id)
     .all()
     .map(toSession);
 }
@@ -177,7 +177,7 @@ export function listReviews(db: AppDatabase, entryId: string): Review[] {
     .select()
     .from(reviews)
     .where(eq(reviews.libraryEntryId, entryId))
-    .orderBy(desc(reviews.reviewedAt))
+    .orderBy(desc(reviews.reviewedAt), reviews.id)
     .all()
     .map(toReview);
 }

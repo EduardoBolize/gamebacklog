@@ -249,7 +249,7 @@ export function listLibrary(db: AppDatabase): LibraryItem[] {
     .select({ entry: libraryEntries, game: games })
     .from(libraryEntries)
     .innerJoin(games, eq(games.id, libraryEntries.gameId))
-    .orderBy(desc(libraryEntries.createdAt))
+    .orderBy(desc(libraryEntries.createdAt), libraryEntries.id)
     .all();
 
   const scores = new Map(
