@@ -213,6 +213,7 @@ export const ptBR = {
     started: 'Início',
     finished: 'Fim',
     hours: 'Horas',
+    runStatus: 'Status da jogatina',
     deleteRun: 'Apagar esta jogatina',
     confirmDeleteRun: 'Apagar esta jogatina? O progresso e as conquistas dela serão perdidos.',
   },

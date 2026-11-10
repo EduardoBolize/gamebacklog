@@ -215,6 +215,7 @@ export const en: Messages = {
     started: 'Started',
     finished: 'Finished',
     hours: 'Hours',
+    runStatus: 'Playthrough status',
     deleteRun: 'Delete this playthrough',
     confirmDeleteRun: 'Delete this playthrough? Its progress and achievements will be lost.',
   },

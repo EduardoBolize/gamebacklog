@@ -174,7 +174,7 @@ export function ProgressTab({
             />
           </label>
           <label>
-            <span className="label">{t('game.status')}</span>
+            <span className="label">{t('progress.runStatus')}</span>
             <select
               className="field"
               value={run.status}
