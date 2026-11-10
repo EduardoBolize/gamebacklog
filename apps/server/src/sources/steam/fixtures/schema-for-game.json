@@ -1,0 +1,36 @@
+{
+  "game": {
+    "gameName": "DARK SOULS™: REMASTERED",
+    "gameVersion": "4",
+    "availableGameStats": {
+      "achievements": [
+        {
+          "name": "ACH_RING_BELL_1",
+          "defaultvalue": 0,
+          "displayName": "Ring the Bell (Undead Church)",
+          "hidden": 0,
+          "description": "Ring the first Bell of Awakening.",
+          "icon": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a1.jpg",
+          "icongray": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a1g.jpg"
+        },
+        {
+          "name": "ACH_ENDING_LINK",
+          "defaultvalue": 0,
+          "displayName": "To Link the Fire",
+          "hidden": 1,
+          "icon": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a2.jpg",
+          "icongray": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a2g.jpg"
+        },
+        {
+          "name": "ACH_KNIGHTS_HONOR",
+          "defaultvalue": 0,
+          "displayName": "Knight's Honor",
+          "hidden": 0,
+          "description": "Acquire all rare weapons.",
+          "icon": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a3.jpg",
+          "icongray": "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/570940/a3g.jpg"
+        }
+      ]
+    }
+  }
+}

@@ -4,11 +4,9 @@ import type { Provenance, SourceId } from '@gamebacklog/shared';
  * Contract shared by every external data source. Each source lives in its own folder,
  * `apps/server/src/sources/<id>/`, with: HTTP client, Zod schema of the raw response,
  * normalization into the internal model, SQLite cache with TTL, rate limiter and tests
- * running against recorded fixtures.
+ * running against fixtures.
  *
- * Skeleton only — no source is implemented yet. What each source can fetch (catalog search,
- * times to beat, achievements, wiki pages…) is declared by capability interfaces that extend
- * this one, added together with the first adapters in Phase 1.
+ * What each source can fetch is declared by the capability interfaces in `types.ts`.
  */
 
 export interface SourceRateLimit {
@@ -17,11 +15,17 @@ export interface SourceRateLimit {
 }
 
 export type SourceHealthStatus =
-  'ok' | 'not_configured' | 'invalid_credentials' | 'unreachable' | 'error';
+  | 'ok'
+  | 'not_configured'
+  | 'invalid_credentials'
+  | 'profile_private'
+  | 'rate_limited'
+  | 'unreachable'
+  | 'error';
 
 export interface SourceHealth {
   status: SourceHealthStatus;
-  /** Friendly, user-facing explanation. Must never contain keys or tokens. */
+  /** Short explanation for logs. Must never contain keys or tokens. */
   message: string;
 }
 
@@ -51,6 +55,7 @@ export interface Sourced<T> {
 export type SourceErrorCode =
   | 'not_configured'
   | 'invalid_credentials'
+  | 'profile_private'
   | 'rate_limited'
   | 'not_found'
   | 'unreachable'
@@ -59,6 +64,8 @@ export type SourceErrorCode =
 /**
  * Error thrown by adapters. A failing source must never break the app: callers catch this
  * and fall back (cached value, manual field, or the feature shown as unavailable).
+ *
+ * `message` must be safe to log and show: never a URL with a key, never a token.
  */
 export class SourceError extends Error {
   readonly source: SourceId;
@@ -70,4 +77,14 @@ export class SourceError extends Error {
     this.source = source;
     this.code = code;
   }
+}
+
+/** Maps an error thrown by an adapter to a health status. Used by `healthCheck` implementations. */
+export function healthFromError(error: unknown): SourceHealth {
+  if (error instanceof SourceError) {
+    const status: SourceHealthStatus =
+      error.code === 'not_found' || error.code === 'invalid_response' ? 'error' : error.code;
+    return { status, message: error.message };
+  }
+  return { status: 'error', message: 'Unexpected error' };
 }

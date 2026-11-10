@@ -1,0 +1,32 @@
+[
+  {
+    "id": 14593,
+    "name": "Hollow Knight",
+    "summary": "A 2D metroidvania set in Hallownest.",
+    "cover": { "id": 1, "image_id": "co93cr" },
+    "first_release_date": 1487894400,
+    "platforms": [
+      { "id": 6, "name": "PC (Microsoft Windows)" },
+      { "id": 130, "name": "Nintendo Switch" }
+    ],
+    "genres": [
+      { "id": 8, "name": "Platform" },
+      { "id": 31, "name": "Adventure" }
+    ],
+    "themes": [{ "id": 17, "name": "Fantasy" }],
+    "collections": [{ "id": 5000, "name": "Hollow Knight" }],
+    "external_games": [
+      { "id": 10, "uid": "367520", "external_game_source": 1 },
+      { "id": 11, "uid": "1308320128", "external_game_source": 5 }
+    ],
+    "url": "https://www.igdb.com/games/hollow-knight"
+  },
+  {
+    "id": 81085,
+    "name": "Dark Souls: Remastered",
+    "first_release_date": 1527120000,
+    "platforms": [{ "id": 6, "name": "PC (Microsoft Windows)" }],
+    "external_games": [{ "id": 12, "uid": "570940", "external_game_source": 1 }],
+    "url": "https://www.igdb.com/games/dark-souls-remastered"
+  }
+]

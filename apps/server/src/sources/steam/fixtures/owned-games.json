@@ -1,0 +1,28 @@
+{
+  "response": {
+    "game_count": 3,
+    "games": [
+      {
+        "appid": 367520,
+        "name": "Hollow Knight",
+        "playtime_forever": 2040,
+        "img_icon_url": "f6ab055b8bb8a26b6fb8b1e4b3bd0b5e4c4d3f1a",
+        "has_community_visible_stats": true
+      },
+      {
+        "appid": 570940,
+        "name": "DARK SOULS™: REMASTERED",
+        "playtime_forever": 3660,
+        "playtime_2weeks": 120,
+        "img_icon_url": "9d2fd3a0a1b1c4c7ae2c1a1d2a8f6e5b4c3d2e1f",
+        "has_community_visible_stats": true
+      },
+      {
+        "appid": 1145360,
+        "name": "Hades",
+        "playtime_forever": 0,
+        "img_icon_url": "c5a2a4a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1029,
+    "name": "The Legend of Zelda: Ocarina of Time",
+    "alternative_names": [
+      { "id": 51, "name": "Zelda 64" },
+      { "id": 52, "name": "OoT" }
+    ],
+    "summary": "A young boy sets out to stop Ganondorf from obtaining the Triforce.",
+    "cover": { "id": 86202, "image_id": "co1uii" },
+    "first_release_date": 911606400,
+    "platforms": [
+      { "id": 4, "name": "Nintendo 64" },
+      { "id": 21, "name": "Nintendo GameCube" }
+    ],
+    "genres": [{ "id": 31, "name": "Adventure" }],
+    "themes": [
+      { "id": 1, "name": "Action" },
+      { "id": 17, "name": "Fantasy" }
+    ],
+    "keywords": [
+      { "id": 3, "name": "time travel" },
+      { "id": 9, "name": "dungeons" }
+    ],
+    "franchise": { "id": 596, "name": "The Legend of Zelda" },
+    "franchises": [{ "id": 596, "name": "The Legend of Zelda" }],
+    "collections": [{ "id": 106, "name": "The Legend of Zelda" }],
+    "external_games": [{ "id": 77, "uid": "ocarina-of-time", "external_game_source": 14 }],
+    "url": "https://www.igdb.com/games/the-legend-of-zelda-ocarina-of-time"
+  },
+  {
+    "id": 5000,
+    "name": "Obscure Zelda-like"
+  }
+]
