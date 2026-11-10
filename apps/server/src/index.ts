@@ -1,7 +1,9 @@
 import { buildApp } from './app.ts';
 import { loadConfig, loadEnvFile } from './config.ts';
+import { createContext } from './context.ts';
 import { openAppDatabase } from './db/client.ts';
 import { runMigrations } from './db/migrate.ts';
+import { createSecretStore } from './secrets/store.ts';
 
 loadEnvFile();
 const config = loadConfig();
@@ -9,8 +11,14 @@ const config = loadConfig();
 const database = openAppDatabase(config.dataDir);
 runMigrations(database.db);
 
-const app = await buildApp({
+const ctx = createContext({
   db: database.db,
+  dataDir: config.dataDir,
+  secrets: createSecretStore(config.dataDir, process.env.GAMEBACKLOG_SECRET_STORE),
+});
+
+const app = await buildApp({
+  ctx,
   webDistDir: config.production ? config.webDistDir : undefined,
   logger: true,
 });

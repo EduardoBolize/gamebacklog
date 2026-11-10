@@ -5,19 +5,18 @@ import { DATA_SCHEMA_VERSION, healthResponseSchema } from '@gamebacklog/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.ts';
-import { openDatabase, type DatabaseHandle } from './db/client.ts';
-import { runMigrations } from './db/migrate.ts';
+import { createTestApp, type TestApp } from './test/context.ts';
 
-const apps: FastifyInstance[] = [];
-const handles: DatabaseHandle[] = [];
+const testApps: TestApp[] = [];
+const extraApps: FastifyInstance[] = [];
 const tempDirs: string[] = [];
 
-async function createApp(webDistDir?: string) {
-  const handle = openDatabase(':memory:');
-  handles.push(handle);
-  runMigrations(handle.db);
-  const app = await buildApp({ db: handle.db, webDistDir });
-  apps.push(app);
+async function createApp(webDistDir?: string): Promise<FastifyInstance> {
+  const test = await createTestApp();
+  testApps.push(test);
+  if (!webDistDir) return test.app;
+  const app = await buildApp({ ctx: test.ctx, webDistDir });
+  extraApps.push(app);
   return app;
 }
 
@@ -29,8 +28,8 @@ function createWebDist(): string {
 }
 
 afterEach(async () => {
-  for (const app of apps.splice(0)) await app.close();
-  for (const handle of handles.splice(0)) handle.close();
+  for (const app of extraApps.splice(0)) await app.close();
+  for (const test of testApps.splice(0)) await test.close();
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
@@ -64,6 +63,30 @@ describe('unknown routes', () => {
   });
 });
 
+describe('error handling', () => {
+  it('answers 400 with the invalid fields for a bad request body', async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/library',
+      payload: { status: 'nope' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ error: 'invalid_request' });
+  });
+
+  it('answers 400 for malformed JSON instead of 500', async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/library',
+      headers: { 'content-type': 'application/json' },
+      payload: '{ not json',
+    });
+    expect(response.statusCode).toBe(400);
+  });
+});
+
 describe('serving the web build (production)', () => {
   it('serves index.html at the root', async () => {
     const app = await createApp(createWebDist());
@@ -81,9 +104,9 @@ describe('serving the web build (production)', () => {
   });
 
   it('fails fast with a clear message when the web build is missing', async () => {
-    const handle = openDatabase(':memory:');
-    handles.push(handle);
+    const test = await createTestApp();
+    testApps.push(test);
     const missing = path.join(os.tmpdir(), 'gamebacklog-web-missing');
-    await expect(buildApp({ db: handle.db, webDistDir: missing })).rejects.toThrow(/pnpm build/);
+    await expect(buildApp({ ctx: test.ctx, webDistDir: missing })).rejects.toThrow(/pnpm build/);
   });
 });
