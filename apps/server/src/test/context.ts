@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { defineProvider, type AiProvider, type AiTextRequest } from '../ai/provider.ts';
+import { createAiService } from '../ai/service.ts';
 import { buildApp } from '../app.ts';
 import type { AppContext } from '../context.ts';
 import { MemorySecretStore } from '../secrets/store.ts';
@@ -160,10 +162,47 @@ function fakeSteam(state: FakeSources, getSteamId: () => string | null): SteamSo
   };
 }
 
+/** Scripted AI: tests push the answers it should give and read back what it was asked. */
+export interface FakeAi {
+  /** When false, the app behaves as if no AI was connected. */
+  connected: boolean;
+  /** Answers handed out in order; objects are sent as JSON. The last one repeats. */
+  answers: unknown[];
+  /** Every request the provider received. */
+  requests: AiTextRequest[];
+  provider: AiProvider;
+}
+
+function createFakeAi(): FakeAi {
+  const fake: FakeAi = {
+    connected: true,
+    answers: [],
+    requests: [],
+    provider: defineProvider({
+      id: 'ollama',
+      displayName: 'Fake AI',
+      kind: 'local',
+      capabilities: { structuredOutput: false, maxContextTokens: 8000, costHint: 'free' },
+      detect: () => Promise.resolve({ status: 'ok', message: 'ok' }),
+      generate(request) {
+        fake.requests.push(request);
+        const answer = fake.answers.length > 1 ? fake.answers.shift() : fake.answers[0];
+        if (answer === undefined) return Promise.reject(new Error('FakeAi has no answer queued'));
+        return Promise.resolve({
+          text: typeof answer === 'string' ? answer : JSON.stringify(answer),
+          model: 'fake-model',
+        });
+      },
+    }),
+  };
+  return fake;
+}
+
 export interface TestApp {
   app: FastifyInstance;
   ctx: AppContext;
   sources: FakeSources;
+  ai: FakeAi;
   /** Moves the clock the app sees. */
   setNow: (iso: string) => void;
   close: () => Promise<void>;
@@ -186,20 +225,34 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     globalPercentages: {},
     playerAchievements: {},
   };
+  const secrets = new MemorySecretStore();
+  const ai = createFakeAi();
   const ctx: AppContext = {
     db: handle.db,
-    secrets: new MemorySecretStore(),
+    secrets,
     dataDir,
     now: () => now,
     igdb: fakeCatalog(sources),
     hltb: fakeTimes(sources),
     steam: fakeSteam(sources, () => getSetting(handle.db, SETTINGS.steamId)),
+    ai: {
+      ...createAiService({
+        db: handle.db,
+        secrets,
+        env: {},
+        resolve: () => null,
+        fetch: () => Promise.resolve(new Response('', { status: 599 })),
+      }),
+      getActive: () => (ai.connected ? ai.provider : null),
+    },
+    aiContextBudget: () => getSetting(handle.db, SETTINGS.aiContextBudget),
   };
   const app = await buildApp({ ctx });
   return {
     app,
     ctx,
     sources,
+    ai,
     setNow: (iso) => {
       now = new Date(iso);
     },

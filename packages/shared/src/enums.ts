@@ -132,3 +132,34 @@ export type AiProviderKind = z.infer<typeof aiProviderKindSchema>;
 export const AI_COST_HINTS = ['subscription', 'pay-per-use', 'free'] as const;
 export const aiCostHintSchema = z.enum(AI_COST_HINTS);
 export type AiCostHint = z.infer<typeof aiCostHintSchema>;
+
+/** Every way to connect an AI. CLIs use the user's subscription; APIs are pay-per-use; local is free. */
+export const AI_PROVIDER_IDS = [
+  'claude_cli',
+  'codex_cli',
+  'gemini_cli',
+  'anthropic',
+  'openai',
+  'google',
+  'openrouter',
+  'ollama',
+  'lmstudio',
+] as const;
+export const aiProviderIdSchema = z.enum(AI_PROVIDER_IDS);
+export type AiProviderId = z.infer<typeof aiProviderIdSchema>;
+
+/** What a provider check can report. The web app translates each one. */
+export const AI_HEALTH_STATUSES = [
+  'ok',
+  'not_installed',
+  'not_authenticated',
+  'not_configured',
+  'unreachable',
+  'error',
+] as const;
+export const aiHealthStatusSchema = z.enum(AI_HEALTH_STATUSES);
+export type AiHealthStatus = z.infer<typeof aiHealthStatusSchema>;
+
+export const WEB_SEARCH_PROVIDERS = ['searxng', 'brave', 'tavily'] as const;
+export const webSearchProviderSchema = z.enum(WEB_SEARCH_PROVIDERS);
+export type WebSearchProvider = z.infer<typeof webSearchProviderSchema>;

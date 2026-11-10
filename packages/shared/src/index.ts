@@ -7,3 +7,4 @@ export * from './contracts/library.ts';
 export * from './contracts/progress.ts';
 export * from './contracts/sources.ts';
 export * from './contracts/export.ts';
+export * from './contracts/ai.ts';

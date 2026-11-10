@@ -13,9 +13,14 @@
     "db:seed": "node src/db/cli/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.102",
+    "@ai-sdk/google": "^4.0.117",
+    "@ai-sdk/openai": "^4.0.114",
+    "@ai-sdk/openai-compatible": "^3.0.90",
     "@fastify/static": "^10.1.10",
     "@gamebacklog/shared": "workspace:*",
     "@napi-rs/keyring": "^2.1.2",
+    "ai": "^7.0.169",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",

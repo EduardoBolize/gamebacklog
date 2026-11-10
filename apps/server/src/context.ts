@@ -1,3 +1,4 @@
+import { createAiService, type AiService } from './ai/service.ts';
 import type { AppDatabase } from './db/client.ts';
 import type { SecretStore } from './secrets/store.ts';
 import { SETTINGS, getSetting } from './settings/store.ts';
@@ -14,6 +15,9 @@ export interface AppContext {
   igdb: CatalogSource;
   steam: SteamSource;
   hltb: GameTimesSource;
+  ai: AiService;
+  /** Token budget for the context sent with each AI request. */
+  aiContextBudget: () => number;
   dataDir: string;
   now: () => Date;
 }
@@ -30,6 +34,8 @@ export function createContext(options: {
     secrets,
     dataDir,
     now: () => new Date(),
+    ai: createAiService({ db, secrets }),
+    aiContextBudget: () => getSetting(db, SETTINGS.aiContextBudget),
     igdb: createIgdbSource({ secrets, cache }),
     steam: createSteamSource({
       secrets,

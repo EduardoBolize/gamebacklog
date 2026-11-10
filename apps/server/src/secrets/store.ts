@@ -21,6 +21,12 @@ export const SECRET_NAMES = [
   'rawg.api_key',
   'retroachievements.username',
   'retroachievements.api_key',
+  'ai.anthropic.api_key',
+  'ai.openai.api_key',
+  'ai.google.api_key',
+  'ai.openrouter.api_key',
+  'search.brave.api_key',
+  'search.tavily.api_key',
 ] as const;
 export type SecretName = (typeof SECRET_NAMES)[number];
 
