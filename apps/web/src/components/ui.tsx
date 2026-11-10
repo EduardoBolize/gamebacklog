@@ -169,7 +169,7 @@ export function ChipInput({
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={add}
-          className="field !min-h-8 w-32 !px-2 !text-sm"
+          className="field w-32 !px-2 sm:!min-h-8"
         />
       </form>
     </div>

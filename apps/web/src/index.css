@@ -113,7 +113,8 @@
     filter: brightness(1.08);
   }
   .btn-quiet {
-    @apply cursor-pointer rounded-base text-sm text-muted underline underline-offset-4;
+    /* Text-style button. Tall enough to tap on a phone; compact with a mouse. */
+    @apply inline-flex min-h-11 cursor-pointer items-center rounded-base text-sm text-muted underline underline-offset-4 sm:min-h-6;
   }
   .btn-quiet:hover {
     color: var(--text);
