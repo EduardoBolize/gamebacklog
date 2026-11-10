@@ -4,6 +4,7 @@ import { createContext } from './context.ts';
 import { openAppDatabase } from './db/client.ts';
 import { runMigrations } from './db/migrate.ts';
 import { createSecretStore } from './secrets/store.ts';
+import { startBackupSchedule } from './transfer/backup.ts';
 
 loadEnvFile();
 const config = loadConfig();
@@ -22,7 +23,11 @@ const app = await buildApp({
   webDistDir: config.production ? config.webDistDir : undefined,
   logger: true,
 });
-app.addHook('onClose', () => database.close());
+const stopBackups = startBackupSchedule(ctx);
+app.addHook('onClose', () => {
+  stopBackups();
+  database.close();
+});
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

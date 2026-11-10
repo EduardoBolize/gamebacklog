@@ -8,6 +8,7 @@ import { registerAchievementRoutes } from './routes/achievements.ts';
 import { registerHealthRoute } from './routes/health.ts';
 import { registerLibraryRoutes } from './routes/library.ts';
 import { registerSourceRoutes } from './routes/sources.ts';
+import { registerTransferRoutes } from './routes/transfer.ts';
 
 export interface BuildAppOptions {
   ctx: AppContext;
@@ -28,6 +29,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerLibraryRoutes(app, ctx);
   registerAchievementRoutes(app, ctx);
   registerSourceRoutes(app, ctx);
+  registerTransferRoutes(app, ctx);
 
   if (webDistDir) {
     if (!existsSync(path.join(webDistDir, 'index.html'))) {
