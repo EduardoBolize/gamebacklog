@@ -91,7 +91,7 @@ export function htmlToSections(html: string): WikiSection[] {
     .replace(/<[^>]+>/g, '');
 
   text = decodeEntities(text)
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t\xa0]+/g, ' ')
     .replace(/ ?\| ?(\n|$)/g, '$1')
     .replace(/\n /g, '\n')
     .replace(/ \n/g, '\n')
