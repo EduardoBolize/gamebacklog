@@ -7,6 +7,8 @@ import { createHltbSource } from './sources/hltb/index.ts';
 import { createIgdbSource } from './sources/igdb/index.ts';
 import { createSteamSource } from './sources/steam/index.ts';
 import type { CatalogSource, GameTimesSource, SteamSource } from './sources/types.ts';
+import { createWebSearchSource, type WebSearchSource } from './sources/web-search/index.ts';
+import { createWikiSource, type WikiSource } from './sources/wiki/index.ts';
 
 /** Everything a route or service needs. Tests build one with fake sources. */
 export interface AppContext {
@@ -15,6 +17,8 @@ export interface AppContext {
   igdb: CatalogSource;
   steam: SteamSource;
   hltb: GameTimesSource;
+  wiki: WikiSource;
+  webSearch: WebSearchSource;
   ai: AiService;
   /** Token budget for the context sent with each AI request. */
   aiContextBudget: () => number;
@@ -43,6 +47,13 @@ export function createContext(options: {
       getSteamId: () => getSetting(db, SETTINGS.steamId),
     }),
     hltb: createHltbSource({ cache, isEnabled: () => getSetting(db, SETTINGS.hltbEnabled) }),
+    wiki: createWikiSource({ cache }),
+    webSearch: createWebSearchSource({
+      secrets,
+      cache,
+      getProvider: () => getSetting(db, SETTINGS.webSearchProvider),
+      getSearxngUrl: () => getSetting(db, SETTINGS.searxngUrl),
+    }),
   };
 }
 

@@ -16,6 +16,9 @@ import type {
   SteamPlayerAchievement,
   SteamSource,
 } from '../sources/types.ts';
+import type { WebSearchResult, WebSearchSource } from '../sources/web-search/index.ts';
+import type { WikiSection } from '../sources/wiki/html.ts';
+import type { WikiSite, WikiSource } from '../sources/wiki/index.ts';
 import { createTestDatabase } from './helpers.ts';
 
 /** Catalog entry with sensible defaults, for building fake IGDB data. */
@@ -54,11 +57,20 @@ export interface FakeSources {
   globalPercentages: Record<string, Record<string, number>>;
   /** `null` simulates a profile whose achievements are not public. */
   playerAchievements: Record<string, SteamPlayerAchievement[] | null>;
+  /** Hosts that answer as a wiki, e.g. `zelda.fandom.com`. Any other host is "not a wiki". */
+  wikiHosts: string[];
+  /** Page title → sections. Search matches titles and text against the query words. */
+  wikiPages: Record<string, WikiSection[]>;
+  /** Every wiki request made, as `probe:<host>`, `search:<query>` or `page:<title>`. */
+  wikiCalls: string[];
+  webSearchConfigured: boolean;
+  webResults: WebSearchResult[];
+  webSearchCalls: string[];
 }
 
 const FETCHED_AT = '2026-11-01T00:00:00.000Z';
 
-function sourced<T>(origin: 'igdb' | 'steam' | 'hltb', data: T, url?: string): Sourced<T> {
+function sourced<T>(origin: 'igdb' | 'steam' | 'hltb' | 'wiki', data: T, url?: string): Sourced<T> {
   return { data, fromCache: false, provenance: { origin, url, fetchedAt: FETCHED_AT } };
 }
 
@@ -128,6 +140,62 @@ function fakeTimes(state: FakeSources): GameTimesSource {
   };
 }
 
+function fakeWiki(state: FakeSources): WikiSource {
+  const words = (text: string): string[] => [
+    ...(text.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []),
+  ];
+  return {
+    id: 'wiki',
+    probe(url) {
+      const host = new URL(url).host;
+      state.wikiCalls.push(`probe:${host}`);
+      const site: WikiSite = {
+        name: host,
+        apiUrl: `https://${host}/api.php`,
+        articleBase: `https://${host}/wiki/`,
+      };
+      return Promise.resolve(state.wikiHosts.includes(host) ? site : null);
+    },
+    search(_site, query, limit = 5) {
+      state.wikiCalls.push(`search:${query}`);
+      const wanted = words(query);
+      const scored = Object.entries(state.wikiPages)
+        .map(([title, sections]) => {
+          const haystack =
+            `${title} ${sections.map((section) => section.text).join(' ')}`.toLowerCase();
+          const titleWords = words(title);
+          const score =
+            wanted.filter((word) => titleWords.includes(word)).length * 3 +
+            wanted.filter((word) => haystack.includes(word)).length;
+          return { title, score };
+        })
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score);
+      return Promise.resolve(scored.slice(0, limit).map((item) => item.title));
+    },
+    getPage(site, title) {
+      state.wikiCalls.push(`page:${title}`);
+      const sections = state.wikiPages[title];
+      if (!sections) return Promise.resolve(null);
+      const url = site.articleBase + encodeURIComponent(title.replace(/ /g, '_'));
+      return Promise.resolve(sourced('wiki', { title, url, sections }, url));
+    },
+    healthCheck: () => Promise.resolve({ status: 'ok' as const, message: 'ok' }),
+  };
+}
+
+function fakeWebSearch(state: FakeSources): WebSearchSource {
+  return {
+    id: 'web_search',
+    isConfigured: () => state.webSearchConfigured,
+    search(query, limit = 5) {
+      if (!state.webSearchConfigured) return Promise.resolve([]);
+      state.webSearchCalls.push(query);
+      return Promise.resolve(state.webResults.slice(0, limit));
+    },
+  };
+}
+
 function fakeSteam(state: FakeSources, getSteamId: () => string | null): SteamSource {
   const assertConfigured = () => {
     if (!state.steamConfigured) throw new SourceError('steam', 'not_configured', 'not configured');
@@ -175,7 +243,7 @@ export interface FakeAi {
 
 function createFakeAi(): FakeAi {
   const fake: FakeAi = {
-    connected: true,
+    connected: false,
     answers: [],
     requests: [],
     provider: defineProvider({
@@ -224,6 +292,12 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     achievementSchemas: {},
     globalPercentages: {},
     playerAchievements: {},
+    wikiHosts: [],
+    wikiPages: {},
+    wikiCalls: [],
+    webSearchConfigured: false,
+    webResults: [],
+    webSearchCalls: [],
   };
   const secrets = new MemorySecretStore();
   const ai = createFakeAi();
@@ -235,6 +309,8 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     igdb: fakeCatalog(sources),
     hltb: fakeTimes(sources),
     steam: fakeSteam(sources, () => getSetting(handle.db, SETTINGS.steamId)),
+    wiki: fakeWiki(sources),
+    webSearch: fakeWebSearch(sources),
     ai: {
       ...createAiService({
         db: handle.db,

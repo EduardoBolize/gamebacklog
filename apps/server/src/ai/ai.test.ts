@@ -113,6 +113,7 @@ describe('data-first pipeline', () => {
 
   beforeEach(async () => {
     t = await createTestApp();
+    t.ai.connected = true;
     collect.mockClear();
   });
   afterEach(() => t.close());
