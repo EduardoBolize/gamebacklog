@@ -98,12 +98,23 @@ export function Shell() {
       </a>
 
       <header className="sticky top-0 z-30 border-b border-line bg-bg">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 px-4 py-2">
           <Link to="/" className="text-lg font-semibold tracking-tight">
             {t('app.name')}
           </Link>
           <QuickAddButtons onPick={setAddStatus} className="hidden gap-2 sm:flex" />
-          <div className="ml-auto flex items-center gap-4">
+          <nav
+            aria-label={t('nav.sections')}
+            className="order-last flex w-full items-center gap-4 overflow-x-auto sm:order-none sm:ml-auto sm:w-auto"
+          >
+            <Link to="/recommendations" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
+              {t('nav.recommendations')}
+            </Link>
+            <Link to="/stats" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
+              {t('nav.stats')}
+            </Link>
+          </nav>
+          <div className="ml-auto flex items-center gap-4 sm:ml-0">
             <button
               type="button"
               className="btn-quiet min-h-11 sm:min-h-0"
@@ -112,9 +123,6 @@ export function Shell() {
             >
               {t('nav.theme')}
             </button>
-            <Link to="/recommendations" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
-              {t('nav.recommendations')}
-            </Link>
             <Link to="/settings" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
               {t('nav.settings')}
             </Link>

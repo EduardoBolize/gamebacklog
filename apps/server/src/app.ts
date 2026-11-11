@@ -11,6 +11,7 @@ import { registerHealthRoute } from './routes/health.ts';
 import { registerLibraryRoutes } from './routes/library.ts';
 import { registerRecommendationRoutes } from './routes/recommendations.ts';
 import { registerSourceRoutes } from './routes/sources.ts';
+import { registerStatsRoutes } from './routes/stats.ts';
 import { registerTransferRoutes } from './routes/transfer.ts';
 
 export interface BuildAppOptions {
@@ -35,6 +36,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerTransferRoutes(app, ctx);
   registerAiRoutes(app, ctx);
   registerAssistRoutes(app, ctx);
+  registerStatsRoutes(app, ctx);
   registerRecommendationRoutes(app, ctx);
 
   if (webDistDir) {

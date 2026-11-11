@@ -1,7 +1,7 @@
 import { LIBRARY_STATUSES, type LibraryItem, type LibraryStatus } from '@gamebacklog/shared';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { api, useApiMutation, useLibrary } from '../api.ts';
+import { api, useApiMutation, useLibrary, useNudges } from '../api.ts';
 import { useAddGame } from '../components/Shell.tsx';
 import { Cover, ErrorNote, Loading } from '../components/ui.tsx';
 import { useI18n } from '../i18n/index.tsx';
@@ -112,6 +112,49 @@ function GameCard({ item }: { item: LibraryItem }) {
   );
 }
 
+/**
+ * Games being played that were left alone: a quiet reminder with how close each one is to the
+ * end, before they are dropped without anyone deciding to.
+ */
+function Nudges() {
+  const { t, formatMinutes } = useI18n();
+  const nudges = useNudges();
+  const items = nudges.data?.items ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <section
+      aria-labelledby="nudges-title"
+      className="grid gap-2 rounded-base border border-line p-4"
+    >
+      <h2 id="nudges-title" className="section-title">
+        {t('nudge.title')}
+      </h2>
+      <ul className="grid gap-1 text-sm">
+        {items.slice(0, 3).map((item) => (
+          <li key={item.libraryEntryId}>
+            <Link to={`/games/${item.libraryEntryId}`} className="link font-medium">
+              {item.title}
+            </Link>
+            <span className="text-muted">
+              {' · '}
+              {t('nudge.idle', { days: item.daysIdle })}
+              {item.percent !== null && ' · '}
+              {item.percent !== null &&
+                (item.remainingMinutes !== null
+                  ? t('nudge.close', {
+                      time: formatMinutes(item.remainingMinutes),
+                      percent: item.percent,
+                    })
+                  : t('nudge.percentOnly', { percent: item.percent }))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function LibraryPage() {
   const { t, locale } = useI18n();
   const library = useLibrary();
@@ -202,6 +245,7 @@ export function LibraryPage() {
   return (
     <div className="grid gap-5">
       <h1 className="sr-only">{t('library.title')}</h1>
+      <Nudges />
 
       <input
         type="search"
@@ -212,7 +256,10 @@ export function LibraryPage() {
         onChange={(event) => setParam('q', event.target.value)}
       />
 
-      <nav aria-label={t('library.statusFilter')} className="-mx-4 overflow-x-auto px-4">
+      <nav
+        aria-label={t('library.statusFilter')}
+        className="-mx-4 overflow-x-auto overflow-y-hidden px-4"
+      >
         <ul className="flex gap-x-5 gap-y-1 whitespace-nowrap sm:flex-wrap">
           {(['all', ...LIBRARY_STATUSES] as const).map((key) => {
             const selected = status === key;

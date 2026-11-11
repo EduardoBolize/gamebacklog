@@ -66,6 +66,12 @@ export const SETTINGS = {
     schema: z.number().int().min(1).max(365),
     fallback: 14,
   },
+  /** Days a game being played can sit untouched before the library nudges about it. */
+  nudgeAfterDays: {
+    key: 'nudge.after_days',
+    schema: z.number().int().min(1).max(365),
+    fallback: 14,
+  },
 } as const;
 
 /** Settings that describe this machine, so a merge import must not carry them over. */

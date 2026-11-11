@@ -13,6 +13,7 @@ import {
   importPreviewResponseSchema,
   importResultResponseSchema,
   libraryListResponseSchema,
+  nudgeListResponseSchema,
   playthroughSchema,
   progressListResponseSchema,
   reviewListResponseSchema,
@@ -91,6 +92,7 @@ export const api = {
   completeSetup: () => request('POST', '/api/app/setup-completed', anything),
 
   library: () => request('GET', '/api/library', libraryListResponseSchema),
+  nudges: () => request('GET', '/api/library/nudges', nudgeListResponseSchema),
   searchCatalog: (query: string) =>
     request(
       'GET',
@@ -179,6 +181,7 @@ export const api = {
 export const keys = {
   appState: ['appState'] as const,
   library: ['library'] as const,
+  nudges: ['nudges'] as const,
   catalog: (query: string) => ['catalog', query] as const,
   game: (entryId: string) => ['game', entryId] as const,
   progress: (runId: string) => ['progress', runId] as const,
@@ -193,6 +196,7 @@ export const keys = {
 
 export const useAppState = () => useQuery({ queryKey: keys.appState, queryFn: api.appState });
 export const useLibrary = () => useQuery({ queryKey: keys.library, queryFn: api.library });
+export const useNudges = () => useQuery({ queryKey: keys.nudges, queryFn: api.nudges });
 export const useGame = (entryId: string) =>
   useQuery({ queryKey: keys.game(entryId), queryFn: () => api.game(entryId) });
 export const useProgress = (runId: string) =>

@@ -106,7 +106,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocale,
       t,
       tn: (key, count, vars) => {
-        const form = plural.select(count) === 'one' ? 'one' : 'other';
+        // Zero reads as a plural in both languages ("0 jogos"), whatever the plural rules say.
+        const form = count !== 0 && plural.select(count) === 'one' ? 'one' : 'other';
         return interpolate(lookup(messages, `${key}_${form}`), { count, ...vars });
       },
       // A date-only string is a calendar date: show it as written, not shifted by the time zone.

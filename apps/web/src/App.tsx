@@ -8,6 +8,7 @@ import { LibraryPage } from './pages/LibraryPage.tsx';
 import { RecommendationsPage } from './pages/RecommendationsPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
+import { StatsPage } from './pages/StatsPage.tsx';
 import { ImportPage } from './pages/SteamImportPage.tsx';
 import { ThemeProvider } from './theme.tsx';
 
@@ -41,6 +42,7 @@ export function App() {
                 <Route index element={<LibraryPage />} />
                 <Route path="games/:entryId" element={<GamePage />} />
                 <Route path="recommendations" element={<RecommendationsPage />} />
+                <Route path="stats" element={<StatsPage />} />
                 <Route path="setup" element={<SetupPage />} />
                 <Route path="import/steam" element={<ImportPage key="steam" source="steam" />} />
                 <Route path="import/psn" element={<ImportPage key="psn" source="psn" />} />
