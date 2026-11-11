@@ -38,7 +38,8 @@ const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
 
 /**
  * npm installs a `.cmd` shim on Windows, which cannot be spawned without a shell. The shim only
- * forwards to `node <script>`, so read the script path out of it and run node directly.
+ * forwards to `node <script>` or, for tools shipped as a native binary, to an `.exe` inside the
+ * package. Read that target out of the shim and run it directly.
  */
 function resolveNpmShim(shimPath: string): ResolvedCommand | null {
   let content: string;
@@ -47,10 +48,13 @@ function resolveNpmShim(shimPath: string): ResolvedCommand | null {
   } catch {
     return null;
   }
-  const match = /"%~?dp0%?\\([^"]+?\.(?:c|m)?js)"/i.exec(content);
+  const match = /"%~?dp0%?\\([^"]+?\.(?:(?:c|m)?js|exe))"/i.exec(content);
   if (!match?.[1]) return null;
-  const script = path.join(path.dirname(shimPath), match[1]);
-  return existsSync(script) ? { file: process.execPath, prefixArgs: [script] } : null;
+  const target = path.join(path.dirname(shimPath), match[1]);
+  if (!existsSync(target)) return null;
+  return target.toLowerCase().endsWith('.exe')
+    ? { file: target, prefixArgs: [] }
+    : { file: process.execPath, prefixArgs: [target] };
 }
 
 /** Finds a command on PATH without asking a shell. Returns null when it is not installed. */

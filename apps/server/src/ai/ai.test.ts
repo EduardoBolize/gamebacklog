@@ -304,6 +304,21 @@ describe('resolveCommand', () => {
       prefixArgs: [script],
     });
   });
+
+  it('unwraps an npm .cmd shim that points to a native binary', () => {
+    const bin = tempDir();
+    const binary = path.join(bin, 'node_modules', '@scope', 'tool', 'bin', 'tool.exe');
+    mkdirSync(path.dirname(binary), { recursive: true });
+    writeFileSync(binary, '');
+    writeFileSync(
+      path.join(bin, 'tool.cmd'),
+      '@ECHO off\r\nGOTO start\r\n:start\r\n"%dp0%\\node_modules\\@scope\\tool\\bin\\tool.exe"   %*\r\n',
+    );
+    expect(resolveCommand('tool', { PATH: bin }, 'win32')).toEqual({
+      file: binary,
+      prefixArgs: [],
+    });
+  });
 });
 
 describe('CLI providers', () => {
