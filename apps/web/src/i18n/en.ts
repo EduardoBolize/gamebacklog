@@ -661,7 +661,7 @@ export const en: Messages = {
       'Paused games, and dropped games that match your taste and that you did not rate badly.',
     affinity: 'affinity {percent}%',
     similarity: 'similar {percent}%',
-    reasonLiked: '{value}: you liked {games}',
+    reasonLiked: '{value}: as in {games}',
     reasonLikedPlain: '{value}: you tend to like it',
     reasonAvoided: '{value}: you tend not to like it',
     shared: 'In common: {values}',

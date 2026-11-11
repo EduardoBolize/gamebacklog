@@ -40,7 +40,7 @@ test('ranks the backlog and explains each position, with no AI connected', async
   expect(titles.indexOf('Cities: Skylines')).toBeGreaterThan(titles.indexOf('Hades'));
 
   await expect(item(page, 'Lies of P')).toContainText(
-    'soulslike: você gostou de Elden Ring, Bloodborne e Dark Souls: Remastered',
+    'soulslike: como em Elden Ring, Bloodborne e Dark Souls: Remastered',
   );
   await expect(item(page, 'Cities: Skylines')).toContainText('costuma não te agradar');
 

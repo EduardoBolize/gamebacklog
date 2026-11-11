@@ -379,7 +379,7 @@ describe('POST /api/recommendations/explain', () => {
     const request = t.ai.requests[0];
     expect(request?.prompt).toContain('1. Ori and the Blind Forest');
     expect(request?.prompt).toContain('2. Stellaris');
-    expect(request?.prompt).toContain('enjoyed Hollow Knight');
+    expect(request?.prompt).toContain('(from Hollow Knight)');
     expect(request?.system).toContain('Brazilian Portuguese');
 
     const second = await explain(playNext);

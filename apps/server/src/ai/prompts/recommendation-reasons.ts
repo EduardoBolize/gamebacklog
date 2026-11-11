@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const RECOMMENDATION_REASONS_PROMPT_VERSION = 'recommendation-reasons.v1';
+export const RECOMMENDATION_REASONS_PROMPT_VERSION = 'recommendation-reasons.v2';
 
 export const recommendationReasonsSchema = z.object({
   lines: z
@@ -19,7 +19,7 @@ export type RecommendationReasons = z.infer<typeof recommendationReasonsSchema>;
 export interface RecommendationFacts {
   title: string;
   genres: string[];
-  /** Why it fits the profile: "likes <value> because of <games>". */
+  /** Why it fits the profile: a feature the library favours, and the games behind that. */
   likes: { value: string; because: string[] }[];
   dislikes: string[];
   /** Shared with the reference game, in the "similar" lists. */
@@ -51,9 +51,9 @@ export function buildRecommendationReasonsPrompt(input: {
       game.genres.length ? `   genres: ${game.genres.join(', ')}` : null,
       ...game.likes.map(
         (like) =>
-          `   the player likes "${like.value}"${like.because.length ? ` (enjoyed ${like.because.join(', ')})` : ''}`,
+          `   their library favours "${like.value}"${like.because.length ? ` (from ${like.because.join(', ')})` : ''}`,
       ),
-      game.dislikes.length ? `   the player tends to avoid: ${game.dislikes.join(', ')}` : null,
+      game.dislikes.length ? `   their library counts against: ${game.dislikes.join(', ')}` : null,
       game.shared.length ? `   shared with the reference: ${game.shared.join(', ')}` : null,
       game.status ? `   status in the library: ${game.status}` : null,
       game.playedPercent !== null
@@ -69,7 +69,8 @@ export function buildRecommendationReasonsPrompt(input: {
       'Use only the facts given for each game. Do not add facts about the games, do not mention',
       'plot, and do not invent opinions the player never expressed.',
       'One sentence per game, at most 25 words, speaking to the player directly.',
-      'Mention the games they enjoyed by name when that is the reason.',
+      'Name the games from their library that are given as the reason. Those are games they',
+      'have played, finished or rated well; do not claim more about them than that.',
       `Write in ${LANGUAGE[input.locale] ?? 'English'}.`,
       'Answer for every game in the list, using its number.',
     ].join(' '),

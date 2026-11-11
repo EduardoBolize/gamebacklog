@@ -662,7 +662,7 @@ export const ptBR = {
       'Jogos pausados, e jogos dropados que combinam com o seu gosto e que você não avaliou mal.',
     affinity: 'afinidade {percent}%',
     similarity: 'parecido {percent}%',
-    reasonLiked: '{value}: você gostou de {games}',
+    reasonLiked: '{value}: como em {games}',
     reasonLikedPlain: '{value}: costuma te agradar',
     reasonAvoided: '{value}: costuma não te agradar',
     shared: 'Em comum: {values}',
