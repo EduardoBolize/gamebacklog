@@ -46,6 +46,11 @@ function answerFor(system, user) {
   if (system.includes('estimate what share')) {
     return { percentFinished: 42, rationale: 'Estimativa de teste.' };
   }
+  if (system.includes('one short line per game')) {
+    // One line for each numbered game in the prompt.
+    const numbers = [...user.matchAll(/^(\d+)\. /gm)].map((match) => Number(match[1]));
+    return { lines: numbers.map((game) => ({ game, line: `Linha de teste ${game}.` })) };
+  }
   return 'OK';
 }
 

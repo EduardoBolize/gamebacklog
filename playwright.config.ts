@@ -28,7 +28,8 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'pnpm build && pnpm start',
+      // The example library gives the recommendations something to rank.
+      command: 'pnpm build && pnpm db:seed && pnpm start',
       url: `http://127.0.0.1:${PORT}/api/health`,
       timeout: 180_000,
       reuseExistingServer: false,

@@ -24,10 +24,11 @@ import { DiaryTab } from './game/DiaryTab.tsx';
 import { HintsTab } from './game/HintsTab.tsx';
 import { ProgressTab } from './game/ProgressTab.tsx';
 import { ReviewTab } from './game/ReviewTab.tsx';
+import { SimilarTab } from './game/SimilarTab.tsx';
 import { TimeBars } from './game/TimeBars.tsx';
 import { WhereAmI } from './game/WhereAmI.tsx';
 
-const TABS = ['progress', 'hints', 'achievements', 'diary', 'review'] as const;
+const TABS = ['progress', 'hints', 'achievements', 'diary', 'review', 'similar'] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL = {
@@ -36,6 +37,7 @@ const TAB_LABEL = {
   achievements: 'game.tabAchievements',
   diary: 'game.tabDiary',
   review: 'game.tabReview',
+  similar: 'game.tabSimilar',
 } as const;
 
 function useRunLabel() {
@@ -307,7 +309,7 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
       <div className="grid gap-5">
         <nav
           aria-label={t('game.tabs')}
-          className="-mx-4 overflow-x-auto border-b border-line px-4"
+          className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-line px-4"
         >
           <ul className="flex gap-6 whitespace-nowrap">
             {TABS.map((option) => (
@@ -367,6 +369,12 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
         )}
         {tab === 'diary' && <DiaryTab entryId={entry.id} run={run} />}
         {tab === 'review' && <ReviewTab key={run.id} entryId={entry.id} run={run} />}
+        {tab === 'similar' && (
+          <SimilarTab
+            entryId={entry.id}
+            onOpenAchievements={() => setParam('tab', 'achievements')}
+          />
+        )}
       </div>
 
       <Modal

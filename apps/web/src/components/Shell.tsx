@@ -112,6 +112,9 @@ export function Shell() {
             >
               {t('nav.theme')}
             </button>
+            <Link to="/recommendations" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
+              {t('nav.recommendations')}
+            </Link>
             <Link to="/settings" className="btn-quiet flex min-h-11 items-center sm:min-h-0">
               {t('nav.settings')}
             </Link>

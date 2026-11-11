@@ -5,6 +5,7 @@ import { I18nProvider, useI18n } from './i18n/index.tsx';
 import { AiUsagePage } from './pages/AiUsagePage.tsx';
 import { GamePage } from './pages/GamePage.tsx';
 import { LibraryPage } from './pages/LibraryPage.tsx';
+import { RecommendationsPage } from './pages/RecommendationsPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
 import { SteamImportPage } from './pages/SteamImportPage.tsx';
@@ -39,6 +40,7 @@ export function App() {
               <Route element={<Shell />}>
                 <Route index element={<LibraryPage />} />
                 <Route path="games/:entryId" element={<GamePage />} />
+                <Route path="recommendations" element={<RecommendationsPage />} />
                 <Route path="setup" element={<SetupPage />} />
                 <Route path="import/steam" element={<SteamImportPage />} />
                 <Route path="settings" element={<SettingsPage />} />

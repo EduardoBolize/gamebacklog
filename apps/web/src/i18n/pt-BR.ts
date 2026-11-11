@@ -29,6 +29,7 @@ export const ptBR = {
     backlog: 'Vou jogar',
     wishlist: 'Wishlist',
     settings: 'Ajustes',
+    recommendations: 'Recomendações',
     themeToLight: 'Usar tema claro',
     themeToDark: 'Usar tema escuro',
     theme: 'Tema',
@@ -188,6 +189,7 @@ export const ptBR = {
     tabAchievements: '100% / Conquistas',
     tabDiary: 'Diário',
     tabReview: 'Review',
+    tabSimilar: 'Parecidos',
     notInLibrary: 'Este jogo não está mais na biblioteca.',
   },
   progress: {
@@ -524,6 +526,7 @@ export const ptBR = {
       hint: 'Dica',
       area_checklist: 'Lista da área',
       funnel_estimate: 'Estimativa de abandono',
+      recommendation_reasons: 'Explicação das recomendações',
     },
   },
   map: {
@@ -642,6 +645,80 @@ export const ptBR = {
     text: 'Cerca de {percent}% de quem começa este jogo o termina.',
     disclaimer: 'É uma estimativa feita por IA, sem dados de conquistas.',
   },
+  recs: {
+    title: 'Recomendações',
+    tabs: 'Listas de recomendações',
+    tabPlayNext: 'O que jogar agora',
+    tabGenre: 'Do seu gênero favorito',
+    playNextIntro:
+      'Seu backlog, ordenado pelo quanto cada jogo se parece com o que você já jogou e gostou. Tudo é calculado aqui, a partir das suas notas e dos status.',
+    profileEmpty:
+      'Ainda não há jogos avaliados, concluídos ou dropados para saber do que você gosta. Por enquanto a lista está sem ordem de preferência.',
+    backlogEmpty:
+      'Seu backlog está vazio. Adicione jogos que você pretende jogar para vê-los ordenados aqui.',
+    fromBacklog: 'Do seu backlog',
+    worthResuming: 'Vale retomar',
+    worthResumingIntro:
+      'Jogos pausados, e jogos dropados que combinam com o seu gosto e que você não avaliou mal.',
+    affinity: 'afinidade {percent}%',
+    similarity: 'parecido {percent}%',
+    reasonLiked: '{value}: você gostou de {games}',
+    reasonLikedPlain: '{value}: costuma te agradar',
+    reasonAvoided: '{value}: costuma não te agradar',
+    shared: 'Em comum: {values}',
+    listedByIgdb: 'A IGDB lista como parecido',
+    played: 'Você já jogou cerca de {percent}% da história',
+    shapeCount_one: '{count} conquista',
+    shapeCount_other: '{count} conquistas',
+    shapeMedian: 'mediana {percent}%',
+    shapeRarest: 'mais rara {percent}%',
+    explain: 'Explicar com IA',
+    explaining: 'Escrevendo…',
+    explainHint: 'Uma linha por jogo, em um único pedido. A resposta fica em cache.',
+    explained: 'Pronto.',
+    explainLocked: 'Conecte uma IA para liberar uma linha explicando cada recomendação.',
+    connectAi: 'Conectar uma IA',
+    genre: 'Gênero',
+    genreIntro:
+      'O primeiro da lista é o gênero em que suas notas são mais altas. Os jogos aparecem ordenados pela afinidade com o seu perfil.',
+    genreEmpty:
+      'Nenhum jogo da biblioteca tem gênero ainda. Adicione jogos pela busca para ver esta lista.',
+    inLibrary: 'Na sua biblioteca',
+    inLibraryEmpty: 'Nenhum jogo de {genre} no backlog, na wishlist ou pausado.',
+    discover: 'Para descobrir',
+    discoverEmpty: 'A IGDB não devolveu jogos deste gênero que já não estejam na sua biblioteca.',
+    catalog: {
+      not_configured: 'Configure a IGDB para ver também jogos que não estão na sua biblioteca.',
+      no_catalog_id: 'Este jogo não veio da IGDB, então só dá para comparar com a sua biblioteca.',
+      failed: 'A IGDB não respondeu agora. Mostrando só o que há na sua biblioteca.',
+    },
+    similarTitle: 'Parecidos com este jogo',
+    similarIntro:
+      'O que a IGDB lista como parecido, mais os jogos da sua biblioteca com gêneros, temas e mecânicas em comum. Jogos zerados ou dropados ficam de fora.',
+    similarEmpty: 'Nada parecido encontrado por enquanto.',
+    completionTitle: 'Parecidos com esta platina / 100%',
+    completionIntro:
+      'Jogos cuja lista de conquistas tem tamanho e dificuldade parecidos. Fora da sua biblioteca, só entram jogos com conquistas na Steam.',
+    completionEmpty: 'Nenhum jogo com uma lista de conquistas parecida.',
+    completionNoAchievements:
+      'Este jogo ainda não tem conquistas guardadas. Sincronize-as na aba de conquistas para comparar.',
+    thisGame: 'Este jogo:',
+    profileTitle: 'Seu perfil de gosto',
+    profileIntro:
+      'Calculado só com os seus dados: nota alta em jogo zerado pesa mais, jogo dropado pesa contra.',
+    profileBasis_one: 'Baseado em {count} jogo.',
+    profileBasis_other: 'Baseado em {count} jogos.',
+    profileRated_one: '{count} tem nota.',
+    profileRated_other: '{count} têm nota.',
+    profileAvoids: 'Evita: {values}',
+    dimension: {
+      genre: 'Gêneros',
+      theme: 'Temas',
+      franchise: 'Franquias',
+      platform: 'Plataformas',
+      tag: 'Mecânicas',
+    },
+  },
   errors: {
     ai_not_connected: 'Conecte uma IA em Ajustes › IA para usar esta função.',
     ai_invalid_response:
@@ -653,6 +730,7 @@ export const ptBR = {
     ai_provider_error: 'A IA devolveu um erro. Tente de novo em instantes.',
     ai_no_key_needed: 'Este provedor não usa chave de API.',
     hint_level_locked: 'Abra o nível anterior primeiro.',
+    reference_game_required: 'Escolha um jogo de referência para esta lista.',
     no_chapter_map: 'Este jogo ainda não tem mapa de capítulos.',
     checkpoint_not_found: 'Essa etapa não está no mapa.',
     wiki_not_found: 'Esse endereço não é uma wiki que o app consiga ler.',
