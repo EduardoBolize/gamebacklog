@@ -1,8 +1,9 @@
-import type { Achievement } from '@gamebacklog/shared';
+import type { Achievement, Playthrough } from '@gamebacklog/shared';
 import { useState } from 'react';
 import { api, useAchievements, useApiMutation } from '../../api.ts';
 import { ErrorNote, Loading, PercentBar } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { AreaChecklist } from './AreaChecklist.tsx';
 
 export const ACHIEVEMENT_FILTERS = ['all', 'missing', 'story', 'missable'] as const;
 export type AchievementFilter = (typeof ACHIEVEMENT_FILTERS)[number];
@@ -108,16 +109,17 @@ function AchievementRow({ item, runId }: { item: Achievement; runId: string }) {
 
 export function AchievementsTab({
   entryId,
-  runId,
+  run,
   filter,
   onFilter,
 }: {
   entryId: string;
-  runId: string;
+  run: Playthrough;
   filter: AchievementFilter;
   onFilter: (filter: AchievementFilter) => void;
 }) {
   const { t, formatDateTime, formatNumber } = useI18n();
+  const runId = run.id;
   const achievements = useAchievements(runId);
   const sync = useApiMutation(() => api.syncAchievements(entryId));
 
@@ -126,7 +128,12 @@ export function AchievementsTab({
 
   const { items, steamAppId, syncedAt } = achievements.data;
   if (!steamAppId && items.length === 0) {
-    return <p className="text-muted">{t('achievements.noSteam')}</p>;
+    return (
+      <div className="grid gap-6">
+        <AreaChecklist key={run.id} run={run} />
+        <p className="text-muted">{t('achievements.noSteam')}</p>
+      </div>
+    );
   }
 
   const unlocked = items.filter((item) => item.isUnlocked).length;
@@ -134,6 +141,7 @@ export function AchievementsTab({
 
   return (
     <div className="grid gap-4">
+      <AreaChecklist key={run.id} run={run} />
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="text-lg">
           {items.length > 0 &&

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3877;
+const FAKE_LLM_PORT = 3878;
 
 // The config is loaded again in every worker process. Keeping the folder in an environment
 // variable (inherited by the workers) guarantees a single throwaway data folder per run.
@@ -25,15 +26,24 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    command: 'pnpm build && pnpm start',
-    url: `http://127.0.0.1:${PORT}/api/health`,
-    timeout: 180_000,
-    reuseExistingServer: false,
-    env: {
-      GAMEBACKLOG_DATA_DIR: process.env.GAMEBACKLOG_E2E_DATA_DIR,
-      GAMEBACKLOG_PORT: String(PORT),
-      GAMEBACKLOG_SECRET_STORE: 'file',
+  webServer: [
+    {
+      command: 'pnpm build && pnpm start',
+      url: `http://127.0.0.1:${PORT}/api/health`,
+      timeout: 180_000,
+      reuseExistingServer: false,
+      env: {
+        GAMEBACKLOG_DATA_DIR: process.env.GAMEBACKLOG_E2E_DATA_DIR,
+        GAMEBACKLOG_PORT: String(PORT),
+        GAMEBACKLOG_SECRET_STORE: 'file',
+      },
     },
-  },
+    {
+      // Stand-in for a local model server, used by the AI flows.
+      command: `node e2e/fake-llm.mjs ${FAKE_LLM_PORT}`,
+      url: `http://127.0.0.1:${FAKE_LLM_PORT}/v1/models`,
+      timeout: 30_000,
+      reuseExistingServer: false,
+    },
+  ],
 });

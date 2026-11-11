@@ -4,10 +4,14 @@ import {
   type PlaythroughStatus,
 } from '@gamebacklog/shared';
 import { api, useApiMutation, useFunnel, useProgress } from '../../api.ts';
+import { assistApi, useMap } from '../../api-assist.ts';
 import { ErrorNote, Loading, PercentBar } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { ChapterMapSection, SourceList } from './ChapterMapSection.tsx';
+import { PointOfNoReturnDialog, useReportProgress } from './WhereAmI.tsx';
 
 interface Props {
+  entryId: string;
   run: Playthrough;
   /** Where the time-to-beat figures came from, to cite the right source. */
   timesOrigin: 'hltb' | 'manual' | null;
@@ -17,15 +21,19 @@ interface Props {
 }
 
 export function ProgressTab({
+  entryId,
   run,
   timesOrigin,
   canDeleteRun,
   onFixMilestones,
   onRunDeleted,
 }: Props) {
-  const { t, formatMinutes, formatNumber, formatDate } = useI18n();
+  const { t, locale, formatMinutes, formatNumber, formatDate } = useI18n();
   const funnel = useFunnel(run.id);
   const progress = useProgress(run.id);
+  const map = useMap(run.id);
+  const move = useReportProgress(run.id);
+  const estimate = useApiMutation(() => assistApi.estimateFunnel(run.id, locale));
   const update = useApiMutation((body: Parameters<typeof api.updatePlaythrough>[1]) =>
     api.updatePlaythrough(run.id, body),
   );
@@ -70,7 +78,42 @@ export function ProgressTab({
               : t('progress.remainingNone', { goal })}
           </p>
         )}
+
+        {/* No achievement data: the AI can estimate, and the result is labelled as an estimate. */}
+        {data.reason === 'no_achievements' && map.data?.aiConnected && (
+          <div className="mt-2 grid justify-items-start gap-2" aria-live="polite">
+            {estimate.data ? (
+              <div className="grid gap-1">
+                <p>
+                  <span className="font-semibold">{t('estimate.label')}:</span>{' '}
+                  {t('estimate.text', { percent: formatNumber(estimate.data.percentFinished, 0) })}
+                </p>
+                <p className="note max-w-prose">{estimate.data.rationale}</p>
+                <p className="note">{t('estimate.disclaimer')}</p>
+                <SourceList sources={estimate.data.sources} label={t('map.sources')} />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn"
+                disabled={estimate.isPending}
+                onClick={() => estimate.mutate(undefined)}
+              >
+                {estimate.isPending ? t('estimate.estimating') : t('estimate.button')}
+              </button>
+            )}
+            <ErrorNote error={estimate.error} />
+          </div>
+        )}
       </section>
+
+      <ChapterMapSection
+        entryId={entryId}
+        runId={run.id}
+        onMove={(checkpointId) => move.report({ checkpointId })}
+      />
+      <ErrorNote error={move.held ? null : move.error} />
+      <PointOfNoReturnDialog progress={move} />
 
       {data.milestones.length > 0 && (
         <section className="grid gap-3">
@@ -121,7 +164,15 @@ export function ProgressTab({
                 <time dateTime={event.occurredAt} className="text-muted tabular-nums">
                   {formatDate(event.occurredAt)}
                 </time>
-                <span>{event.rawText}</span>
+                <span>
+                  {event.rawText}
+                  {event.checkpointName && (
+                    <span className="text-muted">
+                      {event.rawText ? ' · ' : ''}
+                      {event.checkpointName}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

@@ -53,7 +53,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(
+export async function request<T>(
   method: string,
   url: string,
   schema: z.ZodType<T>,

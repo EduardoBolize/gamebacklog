@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Link, Route, Routes } from 'react-router';
 import { Shell } from './components/Shell.tsx';
 import { I18nProvider, useI18n } from './i18n/index.tsx';
+import { AiUsagePage } from './pages/AiUsagePage.tsx';
 import { GamePage } from './pages/GamePage.tsx';
 import { LibraryPage } from './pages/LibraryPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
@@ -41,6 +42,7 @@ export function App() {
                 <Route path="setup" element={<SetupPage />} />
                 <Route path="import/steam" element={<SteamImportPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="ai/usage" element={<AiUsagePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

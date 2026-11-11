@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router';
 import { api, useApiMutation, useAppState, useBackup, useSources } from '../api.ts';
+import { AiSection } from '../components/AiSettings.tsx';
 import { SourceRow } from '../components/SourceForms.tsx';
 import { ErrorNote, Loading } from '../components/ui.tsx';
 import { LOCALES, LOCALE_NAMES, useI18n } from '../i18n/index.tsx';
@@ -451,6 +452,11 @@ export function SettingsPage() {
               </a>
             </li>
             <li>
+              <a href="#ai" className="link">
+                {t('ai.title')}
+              </a>
+            </li>
+            <li>
               <a href="#data" className="link">
                 {t('settings.data')}
               </a>
@@ -464,6 +470,7 @@ export function SettingsPage() {
         </nav>
       </header>
       <SourcesSection />
+      <AiSection />
       <DataSection />
       <AppearanceSection />
     </div>

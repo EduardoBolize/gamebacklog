@@ -11,7 +11,7 @@ import {
 import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { ApiError, api, useApiMutation, useFunnel, useGame } from '../api.ts';
+import { ApiError, api, useApiMutation, useGame } from '../api.ts';
 import { ChipInput, Cover, ErrorNote, Loading, Modal } from '../components/ui.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import {
@@ -19,10 +19,13 @@ import {
   AchievementsTab,
   type AchievementFilter,
 } from './game/AchievementsTab.tsx';
+import { AssistBanner } from './game/AssistBanner.tsx';
 import { DiaryTab } from './game/DiaryTab.tsx';
+import { HintsTab } from './game/HintsTab.tsx';
 import { ProgressTab } from './game/ProgressTab.tsx';
 import { ReviewTab } from './game/ReviewTab.tsx';
 import { TimeBars } from './game/TimeBars.tsx';
+import { WhereAmI } from './game/WhereAmI.tsx';
 
 const TABS = ['progress', 'hints', 'achievements', 'diary', 'review'] as const;
 type Tab = (typeof TABS)[number];
@@ -118,69 +121,6 @@ function NewRunForm({
         <ErrorNote error={create.error} />
       </div>
     </form>
-  );
-}
-
-/** "Where am I?": free text now; Phase 2 resolves it to a checkpoint. */
-function WhereAmI({ run }: { run: Playthrough }) {
-  const { t } = useI18n();
-  const [text, setText] = useState('');
-  const inputId = useId();
-  const funnel = useFunnel(run.id);
-  const add = useApiMutation((rawText: string) => api.addProgress(run.id, rawText));
-  const reach = useApiMutation((achievementId: string) =>
-    api.setAchievementUnlocked(run.id, achievementId, true),
-  );
-  const milestones = funnel.data?.milestones ?? [];
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!text.trim()) return;
-    add.mutate(text.trim(), { onSuccess: () => setText('') });
-  }
-
-  return (
-    <section className="grid gap-2">
-      <h2 className="section-title">
-        <label htmlFor={inputId}>{t('game.whereAmI')}</label>
-      </h2>
-      <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
-        <input
-          id={inputId}
-          className="field"
-          maxLength={500}
-          placeholder={t('game.whereAmIPlaceholder')}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-        <button type="submit" className="btn btn-primary" disabled={add.isPending || !text.trim()}>
-          {t('app.save')}
-        </button>
-      </form>
-      {add.isSuccess && !text && (
-        <p className="note" role="status">
-          {t('app.saved')}
-        </p>
-      )}
-      {milestones.length > 0 && (
-        <label className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          {t('game.lastMilestone')}
-          <select
-            className="field sm:!w-auto"
-            value={funnel.data?.currentMilestoneId ?? ''}
-            onChange={(event) => event.target.value && reach.mutate(event.target.value)}
-          >
-            <option value="">{t('game.noMilestone')}</option>
-            {milestones.map((milestone) => (
-              <option key={milestone.achievementId} value={milestone.achievementId}>
-                {milestone.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <ErrorNote error={add.error ?? reach.error} />
-    </section>
   );
 }
 
@@ -348,6 +288,21 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
 
       <TimeBars key={entry.id} entryId={entry.id} times={times} run={run} />
       <WhereAmI key={run.id} run={run} />
+      <AssistBanner
+        key={`assist-${run.id}`}
+        runId={run.id}
+        onQuestion={(question) => {
+          setParams(
+            (current) => {
+              const next = new URLSearchParams(current);
+              next.set('tab', question.kind === 'boss_hint' ? 'hints' : 'achievements');
+              if (question.kind === 'boss_hint') next.set('hint', 'boss');
+              return next;
+            },
+            { replace: true },
+          );
+        }}
+      />
 
       <div className="grid gap-5">
         <nav
@@ -377,6 +332,7 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
         {tab === 'progress' && (
           <ProgressTab
             key={run.id}
+            entryId={entry.id}
             run={run}
             timesOrigin={times?.origin ?? null}
             canDeleteRun={playthroughs.length > 1}
@@ -395,16 +351,16 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
           />
         )}
         {tab === 'hints' && (
-          <section className="grid max-w-prose gap-2">
-            <h2 className="section-title">{t('hints.title')}</h2>
-            <p>{t('hints.locked')}</p>
-            <p className="note">{t('hints.soon')}</p>
-          </section>
+          <HintsTab
+            key={run.id}
+            runId={run.id}
+            initialKind={params.get('hint') === 'boss' ? 'boss' : 'general'}
+          />
         )}
         {tab === 'achievements' && (
           <AchievementsTab
             entryId={entry.id}
-            runId={run.id}
+            run={run}
             filter={achievementFilter}
             onFilter={(filter) => setParam('filter', filter === 'all' ? '' : filter)}
           />
