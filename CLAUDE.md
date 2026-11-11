@@ -21,15 +21,24 @@ Princípios inegociáveis:
 
 ## Estado atual
 
-**Fases 0 e 1 concluídas.** O app é uma biblioteca local completa, sem IA: busca e cadastro de
-jogos, jogatinas, diário, reviews, conquistas da Steam, funil de abandono, importação da Steam,
-exportar/importar JSON e backup diário. Próxima: Fase 2 (IA: progresso, dicas e 100%).
+**Fases 0, 1 e 2 concluídas.** Além da biblioteca local completa, o app conecta a IA que o
+usuário tiver (CLI com assinatura, chave de API ou modelo local) e, com ela, monta o mapa de
+capítulos, entende o "Onde estou?" em texto livre, dá dicas em quatro níveis sem spoiler e lista
+colecionáveis e perdíveis por área. Próxima: Fase 3 (recomendações).
 
-Ainda não existe: nenhum provedor de IA (só a interface), mapa de capítulos gerado, dicas,
-adaptadores de wiki/busca/Reddit, RAWG e RetroAchievements (as chaves já podem ser guardadas, mas
-nada as usa), README e LICENSE.
+Ainda não existe: recomendações, painel de estatísticas, RAWG e RetroAchievements (as chaves já
+podem ser guardadas, mas nada as usa), README e LICENSE.
 
-O desenho das telas aprovado está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
+Ficaram de fora da Fase 2, à espera de decisão do usuário:
+
+- **Reddit:** os termos da API restringem o uso do conteúdo com IA; não foi integrado.
+- **PCGamingWiki:** a API respondeu com um desafio anti-robô da Cloudflare; não foi integrado.
+
+Nenhuma CLI de IA nem servidor local de modelos estava instalado na máquina de desenvolvimento:
+os provedores foram testados com dublês (um executável falso, um servidor compatível com OpenAI),
+nunca com um modelo de verdade.
+
+O desenho das telas da Fase 1 está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
 
 ## Decisões travadas
 
@@ -81,6 +90,28 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   referência; `en.ts` só compila se tiver as mesmas chaves.
 - **Web sem biblioteca de componentes nem de ícones**: controles nativos (`<dialog>`, `<select>`,
   `<details>`), tokens em CSS variables (`index.css`) e uma única cor de destaque.
+- **Todo provedor de IA só precisa gerar texto** (`AiProviderCore.generate`). Saída estruturada é
+  igual para todos: o prompt pede JSON, a resposta é extraída e validada com Zod
+  (`defineProvider` em `ai/provider.ts`). Nenhum recurso depende de um provedor específico.
+- **Toda função de IA passa por `runAiTask`** (`ai/pipeline.ts`): cache → coleta de contexto →
+  corte no orçamento de tokens → prompt versionado → validação com uma nova tentativa → cache e
+  log de uso. Pedido repetido custa zero tokens e aparece no log como acerto de cache.
+- **Prompts versionados** em `ai/prompts/*.ts`, cada um com seu schema. Mudou o texto ou o schema,
+  suba a versão: as respostas antigas deixam de valer.
+- **CLIs de IA rodam sem shell**, com o prompt no stdin, numa pasta temporária vazia e com as
+  flags mais restritas que cada uma documenta (`ai/providers/cli.ts`). No Windows, o atalho `.cmd`
+  do npm é desfeito para `node script` para não precisar de shell.
+- **APIs e modelos locais passam pelo Vercel AI SDK** (`ai/providers/api.ts`); OpenRouter, Ollama
+  e LM Studio usam o protocolo compatível com OpenAI. Nenhum parâmetro de amostragem é enviado.
+- **Sem IA conectada, nada quebra:** o texto do "Onde estou?" é guardado, o mapa pode ser escrito
+  à mão e casado localmente, e o resumo "onde você parou" e as perguntas proativas são calculados
+  só com dados do banco.
+- **Wiki por jogo:** palpites de subdomínio do Fandom conferidos por uma busca, depois a busca web
+  (se configurada), depois a Wikipedia; o usuário pode trocar. A escolha fica em `settings`.
+- **Ponto sem volta:** avançar para uma etapa marcada assim devolve um aviso em vez de gravar; só
+  grava com `confirmPointOfNoReturn`.
+- **Formato de export na versão 2** (`checkpoints.bossName`). Arquivos da versão 1 são convertidos
+  em `EXPORT_MIGRATIONS`.
 
 ## Estrutura de pastas
 
@@ -95,34 +126,41 @@ apps/
       context.ts             AppContext: banco, cofre, fontes e relógio
       config.ts, paths.ts    host, porta, pasta de dados por SO, trava "fora do repositório"
       errors.ts              HttpError e o tradutor de erros para `{ error, message }`
-      routes/                rotas HTTP por área (library, achievements, sources, transfer)
+      routes/                rotas HTTP por área (library, achievements, sources, transfer,
+                             ai, assist)
       library/               biblioteca, jogatinas, tempos, diário, reviews, "onde estou"
       achievements/          sincronização da Steam, heurística de história, funil de abandono
       steam/                 prévia e importação da biblioteca, sincronização de horas
       transfer/              exportar, importar (substituir/mesclar) e backup
       sources/               adapter.ts, types.ts, http, rate limiter, cache
         igdb/ steam/ hltb/   um adaptador por pasta, com schema, normalização, testes e fixtures
+        wiki/ web-search/    MediaWiki (Fandom, Wikipedia…) e busca web (SearXNG, Brave, Tavily)
       secrets/               cofre de chaves (keychain, arquivo, memória)
       settings/              registro tipado do que vai na tabela `settings`
-      ai/provider.ts         interface AiProvider (só esqueleto)
+      ai/                    provider.ts (contrato), cli.ts (execução sem shell), pipeline.ts,
+                             service.ts (provedor ativo), providers/ (cli, api) e prompts/
+      assist/                wiki do jogo, mapa de capítulos, "onde estou", dicas, checklist de
+                             100%, resumo e estimativa de abandono
       db/                    client, migrate, seed, cli/, schema/
       test/                  helpers de teste: banco em memória, fetch falso, app com fontes falsas
   web/
     src/
       App.tsx                rotas
-      api.ts                 cliente HTTP + hooks do TanStack Query
+      api.ts, api-assist.ts  cliente HTTP + hooks do TanStack Query (biblioteca / IA)
       theme.tsx, index.css   tema claro/escuro e tokens
       i18n/                  pt-BR.ts, en.ts e o provider
-      components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, ui
-      pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport, Settings
+      components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, AiSettings,
+                             Spoiler (spoiler shield), ui
+      pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport, Settings,
+                             AiUsage
 packages/
   shared/src/                enums, constantes, proveniência e contracts/
-e2e/                         testes Playwright
+e2e/                         testes Playwright e fake-llm.mjs (IA de mentira para os testes)
 docs/                        plano das fases e wireframes
 ```
 
-Destino das próximas fases: novas fontes em `apps/server/src/sources/<fonte>/`; provedores e
-templates de prompt em `apps/server/src/ai/` (`prompts/*.ts`).
+Destino das próximas fases: novas fontes em `apps/server/src/sources/<fonte>/`; novas funções de
+IA como um prompt em `ai/prompts/` mais uma chamada a `runAiTask`.
 
 ## Comandos
 
@@ -169,6 +207,11 @@ O server também aplica as migrações pendentes sozinho ao iniciar.
   `classified_by = 'user'`, `is_user_edited`): nunca sobrescrever.
 - **Testes** ficam ao lado do código (`*.test.ts`). Testes de banco usam `:memory:` ou pasta
   temporária; nunca a pasta de dados real. Testes de rota usam `createTestApp()`.
+- **Testes de IA** usam a IA roteirizada de `createTestApp()` (`t.ai.answers`, `t.ai.requests`)
+  e a wiki falsa (`t.sources.wikiPages`). Por padrão a IA vem desconectada: ligue com
+  `t.ai.connected = true`.
+- **Spoilers:** nomes de etapas futuras, a solução completa (nível 4) e a próxima etapa do resumo
+  ficam atrás do `<Spoiler>` até um clique.
 - **Texto de interface** sempre pelo i18n (`t('chave')`), nas duas línguas. O server devolve
   códigos de erro (`error`), e o web traduz em `errors.<código>`.
 - **Listas ordenadas** levam um critério de desempate estável (o `id`), para que a ordem não mude

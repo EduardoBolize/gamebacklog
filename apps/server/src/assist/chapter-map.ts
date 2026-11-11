@@ -105,11 +105,13 @@ export async function generateChapterMap(
     schema: chapterMapSchema,
     maxTokens: 3000,
     collect: () =>
+      // The game's own article comes first: on real wikis it lists the areas in order, while
+      // a search for "walkthrough" tends to return pages about printed strategy guides.
       collectWikiDocs(ctx, gameId, [
-        `${game.title} walkthrough`,
-        `${game.title} chapters`,
-        `${game.title} dungeons`,
         game.title,
+        `${game.title} dungeons`,
+        `${game.title} chapters`,
+        `${game.title} walkthrough`,
       ]),
     build: (docs, budget) =>
       buildChapterMapPrompt({
