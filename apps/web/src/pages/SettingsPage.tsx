@@ -1,4 +1,4 @@
-import type { BackupStatusResponse, ImportMode } from '@gamebacklog/shared';
+import { CONSOLE_PLATFORMS, type BackupStatusResponse, type ImportMode } from '@gamebacklog/shared';
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router';
@@ -14,6 +14,9 @@ function SourcesSection() {
   const sources = useSources();
   const sync = useApiMutation(api.steamSync);
   const steamReady = sources.data?.items.some((item) => item.id === 'steam' && item.configured);
+  const consolesReady = CONSOLE_PLATFORMS.filter((id) =>
+    sources.data?.items.some((item) => item.id === id && item.configured),
+  );
 
   return (
     <section id="sources" aria-labelledby="sources-title" className="grid scroll-mt-20 gap-3">
@@ -36,6 +39,16 @@ function SourcesSection() {
             {t('sources.neverShown')}
           </p>
         </>
+      )}
+
+      {consolesReady.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {consolesReady.map((id) => (
+            <Link key={id} to={`/import/${id}`} className="btn">
+              {t('steamImport.importFrom', { source: t(`sourceName.${id}`) })}
+            </Link>
+          ))}
+        </div>
       )}
 
       {steamReady && (

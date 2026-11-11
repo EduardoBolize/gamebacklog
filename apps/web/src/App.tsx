@@ -8,7 +8,7 @@ import { LibraryPage } from './pages/LibraryPage.tsx';
 import { RecommendationsPage } from './pages/RecommendationsPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
-import { SteamImportPage } from './pages/SteamImportPage.tsx';
+import { ImportPage } from './pages/SteamImportPage.tsx';
 import { ThemeProvider } from './theme.tsx';
 
 const queryClient = new QueryClient({
@@ -42,7 +42,9 @@ export function App() {
                 <Route path="games/:entryId" element={<GamePage />} />
                 <Route path="recommendations" element={<RecommendationsPage />} />
                 <Route path="setup" element={<SetupPage />} />
-                <Route path="import/steam" element={<SteamImportPage />} />
+                <Route path="import/steam" element={<ImportPage key="steam" source="steam" />} />
+                <Route path="import/psn" element={<ImportPage key="psn" source="psn" />} />
+                <Route path="import/xbox" element={<ImportPage key="xbox" source="xbox" />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="ai/usage" element={<AiUsagePage />} />
                 <Route path="*" element={<NotFoundPage />} />

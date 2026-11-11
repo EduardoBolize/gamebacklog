@@ -9,6 +9,9 @@ import { SourceError, type Sourced } from '../sources/adapter.ts';
 import type {
   CatalogGameData,
   CatalogSource,
+  ConsoleAchievement,
+  ConsoleGame,
+  ConsoleSource,
   GameTimesData,
   GameTimesSource,
   SteamAchievementDefinition,
@@ -61,6 +64,15 @@ export interface FakeSources {
   globalPercentages: Record<string, Record<string, number>>;
   /** `null` simulates a profile whose achievements are not public. */
   playerAchievements: Record<string, SteamPlayerAchievement[] | null>;
+  /** What each console account answers. `configured: false` means no token or key stored. */
+  consoles: Record<
+    'psn' | 'xbox',
+    {
+      configured: boolean;
+      games: ConsoleGame[];
+      achievements: Record<string, ConsoleAchievement[]>;
+    }
+  >;
   /** Hosts that answer as a wiki, e.g. `zelda.fandom.com`. Any other host is "not a wiki". */
   wikiHosts: string[];
   /** Page title → sections. Search matches titles and text against the query words. */
@@ -276,6 +288,39 @@ function fakeSteam(state: FakeSources, getSteamId: () => string | null): SteamSo
   };
 }
 
+function fakeConsole(state: FakeSources, id: 'psn' | 'xbox'): ConsoleSource {
+  const account = () => {
+    const console = state.consoles[id];
+    if (!console.configured) throw new SourceError(id, 'not_configured', 'not configured');
+    return console;
+  };
+  return {
+    ...base,
+    id,
+    displayName: id,
+    requiresCredentials: true,
+    isConfigured: () => Promise.resolve(state.consoles[id].configured),
+    healthCheck: () =>
+      Promise.resolve(
+        state.consoles[id].configured
+          ? { status: 'ok' as const, message: 'ok' }
+          : { status: 'not_configured' as const, message: 'not configured' },
+      ),
+    async getGames() {
+      await Promise.resolve();
+      return account().games;
+    },
+    async getAchievements(titleId) {
+      await Promise.resolve();
+      return {
+        data: account().achievements[titleId] ?? [],
+        fromCache: false,
+        provenance: { origin: id, fetchedAt: FETCHED_AT },
+      };
+    },
+  };
+}
+
 /** Scripted AI: tests push the answers it should give and read back what it was asked. */
 export interface FakeAi {
   /** When false, the app behaves as if no AI was connected. */
@@ -340,6 +385,10 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     achievementSchemas: {},
     globalPercentages: {},
     playerAchievements: {},
+    consoles: {
+      psn: { configured: true, games: [], achievements: {} },
+      xbox: { configured: true, games: [], achievements: {} },
+    },
     wikiHosts: [],
     wikiPages: {},
     wikiImages: [],
@@ -359,6 +408,8 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     igdb: fakeCatalog(sources),
     hltb: fakeTimes(sources),
     steam: fakeSteam(sources, () => getSetting(handle.db, SETTINGS.steamId)),
+    psn: fakeConsole(sources, 'psn'),
+    xbox: fakeConsole(sources, 'xbox'),
     wiki: fakeWiki(sources),
     webSearch: fakeWebSearch(sources),
     ai: {

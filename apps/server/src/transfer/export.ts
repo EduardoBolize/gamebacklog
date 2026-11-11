@@ -76,6 +76,9 @@ export const EXPORT_MIGRATIONS: Record<number, ExportMigration> = {
       checkpoints: rowsOf(file, 'checkpoints').map((row) => ({ bossName: null, ...row })),
     },
   }),
+  // 2 → 3: PSN and Xbox became valid origins. Older files need no change; the version only
+  // stops an older app from importing a file with origins it does not know.
+  2: (file) => file,
 };
 
 /** Brings a file of any known version up to the current format. */

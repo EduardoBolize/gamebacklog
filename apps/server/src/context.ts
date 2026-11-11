@@ -5,10 +5,17 @@ import { SETTINGS, getSetting } from './settings/store.ts';
 import { SourceCache } from './sources/cache.ts';
 import { createHltbSource } from './sources/hltb/index.ts';
 import { createIgdbSource } from './sources/igdb/index.ts';
+import { createPsnSource } from './sources/psn/index.ts';
 import { createSteamSource } from './sources/steam/index.ts';
-import type { CatalogSource, GameTimesSource, SteamSource } from './sources/types.ts';
+import type {
+  CatalogSource,
+  ConsoleSource,
+  GameTimesSource,
+  SteamSource,
+} from './sources/types.ts';
 import { createWebSearchSource, type WebSearchSource } from './sources/web-search/index.ts';
 import { createWikiSource, type WikiSource } from './sources/wiki/index.ts';
+import { createXboxSource } from './sources/xbox/index.ts';
 
 /** Everything a route or service needs. Tests build one with fake sources. */
 export interface AppContext {
@@ -16,6 +23,8 @@ export interface AppContext {
   secrets: SecretStore;
   igdb: CatalogSource;
   steam: SteamSource;
+  psn: ConsoleSource;
+  xbox: ConsoleSource;
   hltb: GameTimesSource;
   wiki: WikiSource;
   webSearch: WebSearchSource;
@@ -46,6 +55,8 @@ export function createContext(options: {
       cache,
       getSteamId: () => getSetting(db, SETTINGS.steamId),
     }),
+    psn: createPsnSource({ secrets, cache }),
+    xbox: createXboxSource({ secrets, cache }),
     hltb: createHltbSource({ cache, isEnabled: () => getSetting(db, SETTINGS.hltbEnabled) }),
     wiki: createWikiSource({ cache }),
     webSearch: createWebSearchSource({

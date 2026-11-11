@@ -83,3 +83,37 @@ export interface SteamSource extends SourceAdapter {
   /** `null` when the player's achievements are not visible (private profile). */
   getPlayerAchievements(appId: string): Promise<SteamPlayerAchievement[] | null>;
 }
+
+/** A game on a console account. Dates are ISO strings, as they travel through the cache. */
+export interface ConsoleGame {
+  /** ID of the game's trophy or achievement list on that network. */
+  titleId: string;
+  name: string;
+  /** Console it was played on, in the catalog's wording, e.g. `PlayStation 5`. */
+  platform: string;
+  coverUrl: string | null;
+  /** Null when the network does not report hours. */
+  playtimeMinutes: number | null;
+  lastPlayedAt: string | null;
+  /** Share of the trophies or achievements earned, 0–100. */
+  progressPercent: number | null;
+}
+
+export interface ConsoleAchievement {
+  id: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  isHidden: boolean;
+  /** Share of players who have it, 0–100. */
+  globalPercent: number | null;
+  isUnlocked: boolean;
+  unlockedAt: string | null;
+}
+
+/** A console network the user signed in to: PlayStation Network or Xbox. */
+export interface ConsoleSource extends SourceAdapter {
+  getGames(): Promise<ConsoleGame[]>;
+  /** The trophies or achievements of one game, with the account's own unlocks. */
+  getAchievements(titleId: string): Promise<Sourced<ConsoleAchievement[]>>;
+}

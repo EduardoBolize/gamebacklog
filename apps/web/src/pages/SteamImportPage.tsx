@@ -1,4 +1,9 @@
-import { LIBRARY_STATUSES, type LibraryStatus, type SteamImportItem } from '@gamebacklog/shared';
+import {
+  LIBRARY_STATUSES,
+  type ConsolePlatform,
+  type LibraryStatus,
+  type SteamImportItem,
+} from '@gamebacklog/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -20,26 +25,38 @@ const inView: Record<View, (item: SteamImportItem) => boolean> = {
   unplayed: (item) => item.playtimeMinutes === 0,
 };
 
+/** Where a library can be imported from. Consoles only give names, so they match on import. */
+export type ImportSource = 'steam' | ConsolePlatform;
+
 function ImportList({
+  source,
   items,
   catalogAvailable,
 }: {
+  source: ImportSource;
   items: SteamImportItem[];
   catalogAvailable: boolean;
 }) {
   const { t, tn, formatMinutes } = useI18n();
+  const sourceName = t(`sourceName.${source}`);
+  const matchOnImport = source !== 'steam';
+  const views = matchOnImport ? VIEWS.filter((option) => option !== 'review') : VIEWS;
   const [view, setView] = useState<View>('all');
   // By default everything identified is selected; unidentified entries are often tools or DLC.
   const [selected, setSelected] = useState(
     () =>
       new Set(
         items
-          .filter((item) => !item.libraryEntryId && (item.match || !catalogAvailable))
+          .filter(
+            (item) => !item.libraryEntryId && (item.match || !catalogAvailable || matchOnImport),
+          )
           .map((item) => item.appId),
       ),
   );
   const [statuses, setStatuses] = useState<Record<string, LibraryStatus>>({});
-  const importGames = useApiMutation(api.steamImport);
+  const importGames = useApiMutation((body: Parameters<typeof api.steamImport>[0]) =>
+    source === 'steam' ? api.steamImport(body) : api.consoleImport(source, body),
+  );
 
   const visible = useMemo(() => items.filter(inView[view]), [items, view]);
   const statusOf = (item: SteamImportItem) => statuses[item.appId] ?? item.suggestedStatus;
@@ -68,8 +85,16 @@ function ImportList({
 
   return (
     <div className="grid gap-4">
-      <p>{t('steamImport.summary', { total: items.length, matched, review: toReview })}</p>
-      {!catalogAvailable && <p className="note">{t('steamImport.noCatalog')}</p>}
+      <p>
+        {matchOnImport
+          ? tn('steamImport.found', items.length)
+          : t('steamImport.summary', { total: items.length, matched, review: toReview })}
+      </p>
+      {!catalogAvailable ? (
+        <p className="note">{t('steamImport.noCatalog', { source: sourceName })}</p>
+      ) : (
+        matchOnImport && <p className="note max-w-prose">{t('steamImport.matchOnImport')}</p>
+      )}
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <fieldset className="flex flex-wrap items-center gap-x-4">
@@ -77,11 +102,11 @@ function ImportList({
           <span className="text-sm text-muted" aria-hidden="true">
             {t('steamImport.show')}
           </span>
-          {VIEWS.map((option) => (
+          {views.map((option) => (
             <label key={option} className="flex min-h-11 items-center gap-2 text-sm sm:min-h-9">
               <input
                 type="radio"
-                name="steam-view"
+                name={`${source}-view`}
                 className="accent-accent"
                 checked={view === option}
                 onChange={() => setView(option)}
@@ -152,7 +177,9 @@ function ImportList({
             <Cover title="" url={item.match?.coverUrl ?? null} />
             <span className="truncate font-medium">{item.name}</span>
             <span className="col-start-3 text-sm tabular-nums text-muted sm:col-start-auto sm:text-right">
-              {formatMinutes(item.playtimeMinutes)}
+              {item.playtimeMinutes > 0 || !matchOnImport
+                ? formatMinutes(item.playtimeMinutes)
+                : t('steamImport.noHours')}
             </span>
             <span className="col-start-3 truncate text-sm text-muted sm:col-start-auto">
               {item.libraryEntryId
@@ -161,7 +188,7 @@ function ImportList({
                   ? [item.match.title, item.match.releaseYear && `(${item.match.releaseYear})`]
                       .filter(Boolean)
                       .join(' ')
-                  : t('steamImport.notIdentified')}
+                  : (item.detail ?? t('steamImport.notIdentified'))}
             </span>
             {!item.libraryEntryId && (
               <select
@@ -209,12 +236,13 @@ function ImportList({
   );
 }
 
-export function SteamImportPage() {
+export function ImportPage({ source }: { source: ImportSource }) {
   const { t } = useI18n();
-  // Nothing is written until the user confirms: this only reads the Steam library.
+  const sourceName = t(`sourceName.${source}`);
+  // Nothing is written until the user confirms: this only reads the library of the account.
   const preview = useQuery({
-    queryKey: keys.steamPreview,
-    queryFn: api.steamPreview,
+    queryKey: keys.importPreview(source),
+    queryFn: () => (source === 'steam' ? api.steamPreview() : api.consolePreview(source)),
     retry: false,
     staleTime: 60_000,
   });
@@ -226,15 +254,15 @@ export function SteamImportPage() {
       <Link to="/" className="btn-quiet justify-self-start">
         ← {t('app.backToLibrary')}
       </Link>
-      <h1 className="text-2xl">{t('steamImport.title')}</h1>
+      <h1 className="text-2xl">{t('steamImport.title', { source: sourceName })}</h1>
 
       {preview.isPending ? (
         <p className="note" role="status">
-          {t('steamImport.loading')}
+          {t('steamImport.loading', { source: sourceName })}
         </p>
       ) : notConfigured ? (
         <div className="grid justify-items-start gap-3">
-          <p>{t('steamImport.notConfigured')}</p>
+          <p>{t('steamImport.notConfigured', { source: sourceName })}</p>
           <Link to="/settings" className="btn btn-primary">
             {t('steamImport.goToSettings')}
           </Link>
@@ -247,9 +275,14 @@ export function SteamImportPage() {
           </button>
         </div>
       ) : preview.data.items.length === 0 ? (
-        <p className="text-muted">{t('steamImport.empty')}</p>
+        <p className="text-muted">{t('steamImport.empty', { source: sourceName })}</p>
       ) : (
-        <ImportList items={preview.data.items} catalogAvailable={preview.data.catalogAvailable} />
+        <ImportList
+          key={source}
+          source={source}
+          items={preview.data.items}
+          catalogAvailable={preview.data.catalogAvailable}
+        />
       )}
       {preview.isFetching && !preview.isPending && <Loading />}
     </section>

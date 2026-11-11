@@ -9,7 +9,7 @@ import {
   getFunnel,
   listAchievements,
   setAchievementUnlocked,
-  syncAchievementsFromSteam,
+  syncAchievements,
 } from '../achievements/service.ts';
 import type { AppContext } from '../context.ts';
 
@@ -41,6 +41,6 @@ export function registerAchievementRoutes(app: FastifyInstance, ctx: AppContext)
     return OK;
   });
   app.post('/api/library/:id/achievements/sync', (request) =>
-    syncAchievementsFromSteam(ctx, idParams.parse(request.params).id),
+    syncAchievements(ctx, idParams.parse(request.params).id),
   );
 }

@@ -310,7 +310,7 @@ export type ExportCacheName = keyof ExportCaches;
 
 export const exportFileSchema = z.strictObject({
   app: z.literal(APP_NAME),
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   appVersion: z.string(),
   exportedAt: instant,
   data: exportTablesSchema,

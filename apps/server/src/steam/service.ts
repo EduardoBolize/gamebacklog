@@ -64,6 +64,7 @@ export async function previewSteamImport(ctx: AppContext): Promise<SteamImportPr
                 coverUrl: match.coverUrl,
               }
             : null,
+          detail: null,
           libraryEntryId: entryByApp.get(game.appId) ?? null,
           suggestedStatus,
         };

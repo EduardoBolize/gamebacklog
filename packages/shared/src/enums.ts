@@ -52,6 +52,8 @@ export const SOURCE_IDS = [
   'wiki',
   'reddit',
   'web_search',
+  'psn',
+  'xbox',
 ] as const;
 export const sourceIdSchema = z.enum(SOURCE_IDS);
 export type SourceId = z.infer<typeof sourceIdSchema>;
@@ -69,6 +71,8 @@ export const EXTERNAL_ID_SOURCES = [
   'retroachievements',
   'rawg',
   'pcgamingwiki',
+  'psn',
+  'xbox',
 ] as const;
 export const externalIdSourceSchema = z.enum(EXTERNAL_ID_SOURCES);
 export type ExternalIdSource = z.infer<typeof externalIdSourceSchema>;
@@ -99,11 +103,35 @@ export type CheckpointResolution = z.infer<typeof checkpointResolutionSchema>;
 
 // --- Achievements ------------------------------------------------------------
 
-export const ACHIEVEMENT_ORIGINS = ['steam', 'retroachievements', 'wiki', 'ai', 'manual'] as const;
+export const ACHIEVEMENT_ORIGINS = [
+  'steam',
+  'retroachievements',
+  'wiki',
+  'ai',
+  'manual',
+  'psn',
+  'xbox',
+] as const;
 export const achievementOriginSchema = z.enum(ACHIEVEMENT_ORIGINS);
 export type AchievementOrigin = z.infer<typeof achievementOriginSchema>;
 
-export const ACHIEVEMENT_PROGRESS_ORIGINS = ['steam', 'retroachievements', 'manual'] as const;
+export const ACHIEVEMENT_PROGRESS_ORIGINS = [
+  'steam',
+  'retroachievements',
+  'manual',
+  'psn',
+  'xbox',
+] as const;
+
+/** Accounts an achievement list can be synced from. */
+export const ACHIEVEMENT_SYNC_SOURCES = ['steam', 'psn', 'xbox', 'retroachievements'] as const;
+export const achievementSyncSourceSchema = z.enum(ACHIEVEMENT_SYNC_SOURCES);
+export type AchievementSyncSource = z.infer<typeof achievementSyncSourceSchema>;
+
+/** Console accounts whose library can be imported. */
+export const CONSOLE_PLATFORMS = ['psn', 'xbox'] as const;
+export const consolePlatformSchema = z.enum(CONSOLE_PLATFORMS);
+export type ConsolePlatform = z.infer<typeof consolePlatformSchema>;
 export const achievementProgressOriginSchema = z.enum(ACHIEVEMENT_PROGRESS_ORIGINS);
 export type AchievementProgressOrigin = z.infer<typeof achievementProgressOriginSchema>;
 

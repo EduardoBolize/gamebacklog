@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { achievementOriginSchema, classificationOriginSchema } from '../enums.ts';
+import {
+  achievementOriginSchema,
+  achievementSyncSourceSchema,
+  classificationOriginSchema,
+} from '../enums.ts';
 import { isoDateTimeSchema } from './common.ts';
 
 // --- "Where am I?" -----------------------------------------------------------
@@ -45,7 +49,9 @@ export const achievementListResponseSchema = z.object({
   items: z.array(achievementSchema),
   /** Steam app linked to this game, when there is one. */
   steamAppId: z.string().nullable(),
-  /** When the catalog was last fetched from Steam. */
+  /** The account the list can be synced from (Steam, PSN, Xbox…), when the game has one. */
+  syncSource: achievementSyncSourceSchema.nullable(),
+  /** When the list was last fetched from that account. */
   syncedAt: isoDateTimeSchema.nullable(),
 });
 export type AchievementListResponse = z.infer<typeof achievementListResponseSchema>;

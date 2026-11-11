@@ -1,11 +1,19 @@
 import { z } from 'zod';
-import { libraryStatusSchema } from '../enums.ts';
+import { consolePlatformSchema, libraryStatusSchema } from '../enums.ts';
 import { isoDateTimeSchema } from './common.ts';
 
 // --- Source configuration ------------------------------------------------------
 
-/** Sources the user can configure in Phase 1. RAWG and RetroAchievements are stored but unused. */
-export const CONFIGURABLE_SOURCES = ['igdb', 'steam', 'hltb', 'rawg', 'retroachievements'] as const;
+/** Sources the user can configure. */
+export const CONFIGURABLE_SOURCES = [
+  'igdb',
+  'steam',
+  'psn',
+  'xbox',
+  'hltb',
+  'rawg',
+  'retroachievements',
+] as const;
 export const configurableSourceSchema = z.enum(CONFIGURABLE_SOURCES);
 export type ConfigurableSource = z.infer<typeof configurableSourceSchema>;
 
@@ -36,6 +44,15 @@ export const saveSourceRequestSchema = z.discriminatedUnion('id', [
     apiKey: credential,
     steamId: z.string().regex(/^\d{17}$/, 'SteamID64 has 17 digits'),
   }),
+  /** The NPSSO token of the user's own PlayStation session: 64 letters and digits. */
+  z.object({
+    id: z.literal('psn'),
+    npsso: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9]{64}$/),
+  }),
+  z.object({ id: z.literal('xbox'), apiKey: credential }),
   z.object({ id: z.literal('hltb'), enabled: z.boolean() }),
   z.object({ id: z.literal('rawg'), apiKey: credential }),
   z.object({ id: z.literal('retroachievements'), username: credential, apiKey: credential }),
@@ -75,6 +92,8 @@ export const steamImportItemSchema = z.object({
       coverUrl: z.string().nullable(),
     })
     .nullable(),
+  /** Extra detail shown next to the name: the console, for console imports. */
+  detail: z.string().nullable().default(null),
   /** Set when the game is already in the library; importing only refreshes its hours. */
   libraryEntryId: z.string().nullable(),
   suggestedStatus: libraryStatusSchema,
@@ -95,6 +114,17 @@ export const steamImportRequestSchema = z.object({
     .max(5000),
 });
 export type SteamImportRequest = z.infer<typeof steamImportRequestSchema>;
+
+/** Same shape as the Steam import, with the IDs each console network uses. */
+export const consoleImportRequestSchema = z.object({
+  items: z
+    .array(z.object({ appId: z.string().min(1).max(120), status: libraryStatusSchema }))
+    .min(1)
+    .max(5000),
+});
+export type ConsoleImportRequest = z.infer<typeof consoleImportRequestSchema>;
+
+export const consoleParamsSchema = z.object({ platform: consolePlatformSchema });
 
 export const steamImportResponseSchema = z.object({
   imported: z.number().int(),

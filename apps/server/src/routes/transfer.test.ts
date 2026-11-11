@@ -322,7 +322,7 @@ describe('import validation', () => {
     expect(result.status).toBe(200);
     expect(result.body.fileSchemaVersion).toBe(1);
     const restored = await exportOf(target);
-    expect(restored.schemaVersion).toBe(2);
+    expect(restored.schemaVersion).toBe(3);
     expect(restored.data.checkpoints).toHaveLength(4);
     expect(restored.data.checkpoints.every((row) => row.bossName === null)).toBe(true);
   });

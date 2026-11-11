@@ -126,8 +126,9 @@ export function AchievementsTab({
   if (achievements.isPending) return <Loading />;
   if (achievements.isError) return <ErrorNote error={achievements.error} />;
 
-  const { items, steamAppId, syncedAt } = achievements.data;
-  if (!steamAppId && items.length === 0) {
+  const { items, syncSource, syncedAt } = achievements.data;
+  const sourceName = syncSource ? t(`sourceName.${syncSource}`) : '';
+  if (!syncSource && items.length === 0) {
     return (
       <div className="grid gap-6">
         <AreaChecklist key={run.id} run={run} />
@@ -151,11 +152,11 @@ export function AchievementsTab({
               percent: formatNumber((unlocked / items.length) * 100, 0),
             })}
         </p>
-        {steamAppId && (
+        {syncSource && (
           <p className="note">
             {syncedAt
-              ? t('achievements.syncedAt', { date: formatDateTime(syncedAt) })
-              : t('achievements.neverSynced')}
+              ? t('achievements.syncedAt', { source: sourceName, date: formatDateTime(syncedAt) })
+              : t('achievements.neverSynced', { source: sourceName })}
             {' · '}
             <button
               type="button"

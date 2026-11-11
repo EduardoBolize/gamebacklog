@@ -179,6 +179,63 @@ export function SteamForm() {
   );
 }
 
+export function PsnForm() {
+  const { t } = useI18n();
+  const [npsso, setNpsso] = useState('');
+  const { save, test } = useSaveAndTest('psn');
+
+  return (
+    <FormFrame
+      intro={
+        <>
+          <p>{t('sources.psnIntro')}</p>
+          <p className="note max-w-prose">{t('sources.psnWarning')}</p>
+          <Steps
+            items={['sources.psnStep1', 'sources.psnStep2', 'sources.psnStep3', 'sources.psnStep4']}
+          />
+        </>
+      }
+      pending={save.isPending || test.isPending}
+      error={save.error ?? test.error}
+      result={test.data}
+      onSubmit={() =>
+        save.mutate({ id: 'psn', npsso: npsso.trim() }, { onSuccess: () => test.mutate(undefined) })
+      }
+    >
+      <SecretInput label={t('sources.npsso')} value={npsso} onChange={setNpsso} />
+    </FormFrame>
+  );
+}
+
+export function XboxForm() {
+  const { t } = useI18n();
+  const [apiKey, setApiKey] = useState('');
+  const { save, test } = useSaveAndTest('xbox');
+
+  return (
+    <FormFrame
+      intro={
+        <>
+          <p>{t('sources.xboxIntro')}</p>
+          <p className="note max-w-prose">{t('sources.xboxWarning')}</p>
+          <Steps items={['sources.xboxStep1', 'sources.xboxStep2', 'sources.xboxStep3']} />
+        </>
+      }
+      pending={save.isPending || test.isPending}
+      error={save.error ?? test.error}
+      result={test.data}
+      onSubmit={() =>
+        save.mutate(
+          { id: 'xbox', apiKey: apiKey.trim() },
+          { onSuccess: () => test.mutate(undefined) },
+        )
+      }
+    >
+      <SecretInput label={t('sources.apiKey')} value={apiKey} onChange={setApiKey} />
+    </FormFrame>
+  );
+}
+
 function SimpleKeyForm({ id }: { id: 'rawg' | 'retroachievements' }) {
   const { t } = useI18n();
   const [apiKey, setApiKey] = useState('');
@@ -305,6 +362,8 @@ export function SourceRow({ source }: { source: SourceStatus }) {
         <div className="rounded-base border border-line p-4">
           {source.id === 'igdb' && <IgdbForm />}
           {source.id === 'steam' && <SteamForm />}
+          {source.id === 'psn' && <PsnForm />}
+          {source.id === 'xbox' && <XboxForm />}
           {(source.id === 'rawg' || source.id === 'retroachievements') && (
             <SimpleKeyForm id={source.id} />
           )}

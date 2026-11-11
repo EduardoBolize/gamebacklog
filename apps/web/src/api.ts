@@ -26,6 +26,8 @@ import {
   type BackupSettings,
   type ClassifyAchievementRequest,
   type ConfigurableSource,
+  type ConsoleImportRequest,
+  type ConsolePlatform,
   type CreatePlaythroughRequest,
   type CreateSessionRequest,
   type ImportMode,
@@ -157,6 +159,10 @@ export const api = {
   steamImport: (body: SteamImportRequest) =>
     request('POST', '/api/steam/import', steamImportResponseSchema, body),
   steamSync: () => request('POST', '/api/steam/sync', steamSyncResponseSchema),
+  consolePreview: (platform: ConsolePlatform) =>
+    request('POST', `/api/consoles/${platform}/import/preview`, steamImportPreviewResponseSchema),
+  consoleImport: (platform: ConsolePlatform, body: ConsoleImportRequest) =>
+    request('POST', `/api/consoles/${platform}/import`, steamImportResponseSchema, body),
 
   importPreview: (mode: ImportMode, file: unknown) =>
     request('POST', '/api/import/preview', importPreviewResponseSchema, { mode, file }),
@@ -181,7 +187,7 @@ export const keys = {
   sessions: (entryId: string) => ['sessions', entryId] as const,
   reviews: (entryId: string) => ['reviews', entryId] as const,
   sources: ['sources'] as const,
-  steamPreview: ['steamPreview'] as const,
+  importPreview: (source: string) => ['importPreview', source] as const,
   backup: ['backup'] as const,
 };
 

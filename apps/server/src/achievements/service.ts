@@ -1,9 +1,11 @@
-import type {
-  Achievement,
-  AchievementListResponse,
-  AchievementSyncResponse,
-  ClassifyAchievementRequest,
-  FunnelResponse,
+import {
+  ACHIEVEMENT_SYNC_SOURCES,
+  type Achievement,
+  type AchievementListResponse,
+  type AchievementSyncResponse,
+  type AchievementSyncSource,
+  type ClassifyAchievementRequest,
+  type FunnelResponse,
 } from '@gamebacklog/shared';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { AppContext } from '../context.ts';
@@ -37,47 +39,165 @@ function gameIdOfPlaythrough(db: AppDatabase, playthroughId: string) {
   return { playthrough, entry, gameId: entry.gameId };
 }
 
-/**
- * Fetches the achievement catalog, the global percentages and the player's unlocks from Steam.
- * Flags the user classified by hand are never overwritten.
- */
-export async function syncAchievementsFromSteam(
-  ctx: AppContext,
-  entryId: string,
-): Promise<AchievementSyncResponse> {
-  const { db } = ctx;
-  const entry = requireEntry(db, entryId);
-  const appId = steamAppIdForGame(db, entry.gameId);
-  if (!appId) throw conflict('no_steam_app', 'This game is not linked to a Steam app');
+/** Where a game's achievement list can be fetched from, and its ID there. */
+export interface AchievementLink {
+  source: AchievementSyncSource;
+  externalId: string;
+}
 
+/**
+ * The account to sync a game from. A game can exist on several (Steam and PSN, say); the one
+ * matching the platform the user plays on wins, so the list shown is the one being earned.
+ */
+export function achievementLinkFor(
+  db: AppDatabase,
+  entry: { gameId: string; platform: string | null },
+): AchievementLink | null {
+  const links = db
+    .select({ source: gameExternalIds.source, externalId: gameExternalIds.externalId })
+    .from(gameExternalIds)
+    .where(
+      and(
+        eq(gameExternalIds.gameId, entry.gameId),
+        inArray(gameExternalIds.source, [...ACHIEVEMENT_SYNC_SOURCES]),
+      ),
+    )
+    .orderBy(gameExternalIds.createdAt, gameExternalIds.externalId)
+    .all() as AchievementLink[];
+  const of = (source: AchievementSyncSource) => links.find((link) => link.source === source);
+
+  const platform = (entry.platform ?? '').toLowerCase();
+  const preferred = /playstation|^ps\b|^ps\d/.test(platform)
+    ? of('psn')
+    : platform.includes('xbox')
+      ? of('xbox')
+      : undefined;
+  return preferred ?? ACHIEVEMENT_SYNC_SOURCES.map(of).find((link) => link !== undefined) ?? null;
+}
+
+/** One achievement as fetched from an account, whatever the account. */
+interface FetchedAchievement {
+  externalId: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  isHidden: boolean;
+  globalPercent: number | null;
+  isUnlocked: boolean;
+  unlockedAt: Date | null;
+}
+
+interface FetchedList {
+  origin: AchievementSyncSource;
+  items: FetchedAchievement[];
+  /** False when the catalog came but the player's own unlocks were not visible. */
+  playerDataAvailable: boolean;
+  url: string | null;
+  fetchedAt: Date;
+}
+
+async function fetchFromSteam(ctx: AppContext, appId: string): Promise<FetchedList> {
   const [schema, percentages, player] = await Promise.all([
     ctx.steam.getAchievementSchema(appId),
     ctx.steam.getGlobalPercentages(appId),
     ctx.steam.getPlayerAchievements(appId),
   ]);
-  const fetchedAt = schema.provenance.fetchedAt ? new Date(schema.provenance.fetchedAt) : ctx.now();
+  const mine = new Map((player ?? []).map((item) => [item.apiName, item]));
+  return {
+    origin: 'steam',
+    items: schema.data.map((definition) => ({
+      externalId: definition.apiName,
+      name: definition.name,
+      description: definition.description,
+      iconUrl: definition.iconUrl,
+      isHidden: definition.isHidden,
+      globalPercent: percentages[definition.apiName] ?? null,
+      isUnlocked: mine.get(definition.apiName)?.isUnlocked ?? false,
+      unlockedAt: mine.get(definition.apiName)?.unlockedAt ?? null,
+    })),
+    playerDataAvailable: player !== null,
+    url: schema.provenance.url ?? null,
+    fetchedAt: schema.provenance.fetchedAt ? new Date(schema.provenance.fetchedAt) : ctx.now(),
+  };
+}
+
+async function fetchFromConsole(
+  ctx: AppContext,
+  platform: 'psn' | 'xbox',
+  titleId: string,
+): Promise<FetchedList> {
+  const source = platform === 'psn' ? ctx.psn : ctx.xbox;
+  const list = await source.getAchievements(titleId);
+  return {
+    origin: platform,
+    items: list.data.map((item) => ({
+      externalId: item.id,
+      name: item.name,
+      description: item.description,
+      iconUrl: item.iconUrl,
+      isHidden: item.isHidden,
+      globalPercent: item.globalPercent,
+      isUnlocked: item.isUnlocked,
+      unlockedAt: item.unlockedAt ? new Date(item.unlockedAt) : null,
+    })),
+    playerDataAvailable: true,
+    url: list.provenance.url ?? null,
+    fetchedAt: list.provenance.fetchedAt ? new Date(list.provenance.fetchedAt) : ctx.now(),
+  };
+}
+
+/** Extra accounts (added by later features) plug in here. */
+export type AchievementFetcher = (ctx: AppContext, externalId: string) => Promise<FetchedList>;
+export const EXTRA_FETCHERS: Partial<Record<AchievementSyncSource, AchievementFetcher>> = {};
+export type { FetchedList };
+
+/**
+ * Fetches a game's achievement or trophy list, the global percentages and the player's unlocks
+ * from the account the game is linked to. Flags the user classified by hand are never
+ * overwritten.
+ */
+export async function syncAchievements(
+  ctx: AppContext,
+  entryId: string,
+): Promise<AchievementSyncResponse> {
+  const { db } = ctx;
+  const entry = requireEntry(db, entryId);
+  const link = achievementLinkFor(db, entry);
+  if (!link) throw conflict('no_steam_app', 'This game is not linked to an account');
+
+  const extra = EXTRA_FETCHERS[link.source];
+  const fetched =
+    link.source === 'steam'
+      ? await fetchFromSteam(ctx, link.externalId)
+      : link.source === 'psn' || link.source === 'xbox'
+        ? await fetchFromConsole(ctx, link.source, link.externalId)
+        : extra
+          ? await extra(ctx, link.externalId)
+          : null;
+  if (!fetched) throw conflict('no_steam_app', 'This game is not linked to an account');
+  const { origin, fetchedAt } = fetched;
 
   return db.transaction((tx) => {
     const existing = new Map(
       tx
         .select()
         .from(achievements)
-        .where(and(eq(achievements.gameId, entry.gameId), eq(achievements.origin, 'steam')))
+        .where(and(eq(achievements.gameId, entry.gameId), eq(achievements.origin, origin)))
         .all()
         .map((row) => [row.externalId, row]),
     );
 
-    const idByApiName = new Map<string, string>();
-    schema.data.forEach((definition, index) => {
-      const known = existing.get(definition.apiName);
+    const idByExternal = new Map<string, string>();
+    fetched.items.forEach((definition, index) => {
+      const known = existing.get(definition.externalId);
       const catalog = {
         name: definition.name,
         description: definition.description,
         iconUrl: definition.iconUrl,
-        globalPercent: percentages[definition.apiName] ?? null,
+        globalPercent: definition.globalPercent,
         isHidden: definition.isHidden,
         sortOrder: index,
-        originUrl: schema.provenance.url ?? null,
+        originUrl: fetched.url,
         fetchedAt,
       };
       const guess =
@@ -94,25 +214,25 @@ export async function syncAchievementsFromSteam(
           .set({ ...catalog, ...guess })
           .where(eq(achievements.id, known.id))
           .run();
-        idByApiName.set(definition.apiName, known.id);
+        idByExternal.set(definition.externalId, known.id);
       } else {
         const created = tx
           .insert(achievements)
           .values({
             gameId: entry.gameId,
-            origin: 'steam',
-            externalId: definition.apiName,
+            origin,
+            externalId: definition.externalId,
             ...catalog,
             ...guess,
           })
           .returning({ id: achievements.id })
           .get();
-        idByApiName.set(definition.apiName, created.id);
+        idByExternal.set(definition.externalId, created.id);
       }
     });
 
     let unlocked = 0;
-    if (player) {
+    if (fetched.playerDataAvailable) {
       const runs = listPlaythroughs(tx, entryId);
       const runIds = runs.map((run) => run.id);
       const alreadyUnlocked = new Set(
@@ -131,13 +251,13 @@ export async function syncAchievementsFromSteam(
               .map((row) => row.achievementId),
       );
 
-      for (const item of player) {
-        const achievementId = idByApiName.get(item.apiName);
+      for (const item of fetched.items) {
+        const achievementId = idByExternal.get(item.externalId);
         if (!item.isUnlocked || !achievementId) continue;
         unlocked++;
         if (alreadyUnlocked.has(achievementId)) continue;
 
-        // Steam unlocks belong to the account; credit the run that was going on at the time.
+        // Unlocks belong to the account; credit the run that was going on at the time.
         const unlockDay = item.unlockedAt?.toISOString().slice(0, 10);
         const run =
           (unlockDay
@@ -150,7 +270,7 @@ export async function syncAchievementsFromSteam(
           achievementId,
           isUnlocked: true,
           unlockedAt: item.unlockedAt,
-          origin: 'steam' as const,
+          origin,
         };
         tx.insert(achievementProgress)
           .values(values)
@@ -162,7 +282,11 @@ export async function syncAchievementsFromSteam(
       }
     }
 
-    return { total: schema.data.length, unlocked, playerDataAvailable: player !== null };
+    return {
+      total: fetched.items.length,
+      unlocked,
+      playerDataAvailable: fetched.playerDataAvailable,
+    };
   });
 }
 
@@ -208,20 +332,24 @@ function loadAchievements(db: AppDatabase, gameId: string, playthroughId: string
 }
 
 export function listAchievements(db: AppDatabase, playthroughId: string): AchievementListResponse {
-  const { gameId } = gameIdOfPlaythrough(db, playthroughId);
-  const syncedAt = db
-    .select({ fetchedAt: achievements.fetchedAt })
-    .from(achievements)
-    .where(and(eq(achievements.gameId, gameId), eq(achievements.origin, 'steam')))
-    .all()
-    .reduce<Date | null>(
-      (latest, row) =>
-        row.fetchedAt && (!latest || row.fetchedAt > latest) ? row.fetchedAt : latest,
-      null,
-    );
+  const { entry, gameId } = gameIdOfPlaythrough(db, playthroughId);
+  const link = achievementLinkFor(db, entry);
+  const syncedAt = link
+    ? db
+        .select({ fetchedAt: achievements.fetchedAt })
+        .from(achievements)
+        .where(and(eq(achievements.gameId, gameId), eq(achievements.origin, link.source)))
+        .all()
+        .reduce<Date | null>(
+          (latest, row) =>
+            row.fetchedAt && (!latest || row.fetchedAt > latest) ? row.fetchedAt : latest,
+          null,
+        )
+    : null;
   return {
     items: loadAchievements(db, gameId, playthroughId),
     steamAppId: steamAppIdForGame(db, gameId),
+    syncSource: link?.source ?? null,
     syncedAt: syncedAt?.toISOString() ?? null,
   };
 }

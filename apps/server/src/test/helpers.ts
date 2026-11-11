@@ -19,6 +19,8 @@ export interface RecordedCall {
 export interface FakeResponse {
   status?: number;
   json?: unknown;
+  /** Response headers, e.g. the `location` of a redirect. */
+  headers?: Record<string, string>;
 }
 
 export type FakeRoute = (call: RecordedCall) => FakeResponse | undefined;
@@ -43,6 +45,7 @@ export function createFakeFetch(...routes: FakeRoute[]): FetchLike & { calls: Re
         return Promise.resolve(
           new Response(answer.json === undefined ? '' : JSON.stringify(answer.json), {
             status: answer.status ?? 200,
+            headers: answer.headers,
           }),
         );
       }

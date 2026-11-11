@@ -1,5 +1,7 @@
 import {
   configurableSourceSchema,
+  consoleImportRequestSchema,
+  consoleParamsSchema,
   saveSourceRequestSchema,
   steamImportRequestSchema,
   type AppStateResponse,
@@ -10,6 +12,7 @@ import {
 } from '@gamebacklog/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { importFromConsole, previewConsoleImport } from '../consoles/service.ts';
 import type { AppContext } from '../context.ts';
 import type { SecretName } from '../secrets/store.ts';
 import { SETTINGS, getSetting, setSetting } from '../settings/store.ts';
@@ -22,6 +25,8 @@ const OK = { ok: true } as const;
 const SECRETS_OF: Record<ConfigurableSource, SecretName[]> = {
   igdb: ['igdb.client_id', 'igdb.client_secret'],
   steam: ['steam.api_key'],
+  psn: ['psn.npsso'],
+  xbox: ['xbox.openxbl_api_key'],
   hltb: [],
   rawg: ['rawg.api_key'],
   retroachievements: ['retroachievements.username', 'retroachievements.api_key'],
@@ -43,6 +48,8 @@ function sourceStatuses(ctx: AppContext): SourceStatus[] {
       enabled: true,
       detail: steamId ? maskSteamId(steamId) : null,
     },
+    { id: 'psn', configured: has('psn'), enabled: true, detail: null },
+    { id: 'xbox', configured: has('xbox'), enabled: true, detail: null },
     {
       id: 'hltb',
       configured: true,
@@ -89,6 +96,14 @@ export function registerSourceRoutes(app: FastifyInstance, ctx: AppContext): voi
         secrets.set('steam.api_key', body.apiKey);
         setSetting(db, SETTINGS.steamId, body.steamId);
         break;
+      case 'psn':
+        secrets.set('psn.npsso', body.npsso);
+        // A refresh token belongs to the session of the token it came from.
+        secrets.delete('psn.refresh_token');
+        break;
+      case 'xbox':
+        secrets.set('xbox.openxbl_api_key', body.apiKey);
+        break;
       case 'hltb':
         setSetting(db, SETTINGS.hltbEnabled, body.enabled);
         break;
@@ -107,6 +122,7 @@ export function registerSourceRoutes(app: FastifyInstance, ctx: AppContext): voi
     const { id } = sourceParams.parse(request.params);
     for (const name of SECRETS_OF[id]) secrets.delete(name);
     if (id === 'steam') setSetting(db, SETTINGS.steamId, null);
+    if (id === 'psn') secrets.delete('psn.refresh_token');
     return { items: sourceStatuses(ctx), secretStore: secrets.kind };
   });
 
@@ -114,6 +130,8 @@ export function registerSourceRoutes(app: FastifyInstance, ctx: AppContext): voi
     const { id } = sourceParams.parse(request.params);
     if (id === 'igdb') return toTestResponse(await ctx.igdb.healthCheck());
     if (id === 'steam') return toTestResponse(await ctx.steam.healthCheck());
+    if (id === 'psn') return toTestResponse(await ctx.psn.healthCheck());
+    if (id === 'xbox') return toTestResponse(await ctx.xbox.healthCheck());
     if (id === 'hltb') return toTestResponse(await ctx.hltb.healthCheck());
     // RAWG and RetroAchievements are stored for a later phase; there is nothing to call yet.
     const configured = SECRETS_OF[id].every((name) => Boolean(secrets.get(name)));
@@ -126,4 +144,16 @@ export function registerSourceRoutes(app: FastifyInstance, ctx: AppContext): voi
     importFromSteam(ctx, steamImportRequestSchema.parse(request.body)),
   );
   app.post('/api/steam/sync', () => syncSteamPlaytime(ctx));
+
+  // --- Console libraries (PSN, Xbox) ---
+  app.post('/api/consoles/:platform/import/preview', (request) =>
+    previewConsoleImport(ctx, consoleParamsSchema.parse(request.params).platform),
+  );
+  app.post('/api/consoles/:platform/import', (request) =>
+    importFromConsole(
+      ctx,
+      consoleParamsSchema.parse(request.params).platform,
+      consoleImportRequestSchema.parse(request.body),
+    ),
+  );
 }
