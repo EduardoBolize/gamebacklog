@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { languageRule } from './language.ts';
 
-export const RECOMMENDATION_REASONS_PROMPT_VERSION = 'recommendation-reasons.v2';
+export const RECOMMENDATION_REASONS_PROMPT_VERSION = 'recommendation-reasons.v3';
 
 export const recommendationReasonsSchema = z.object({
   lines: z
@@ -27,8 +28,6 @@ export interface RecommendationFacts {
   status: string | null;
   playedPercent: number | null;
 }
-
-const LANGUAGE: Record<string, string> = { 'pt-BR': 'Brazilian Portuguese', en: 'English' };
 
 const CONTEXT: Record<string, string> = {
   play_next: "These games are in the player's backlog, or were paused or dropped.",
@@ -71,8 +70,8 @@ export function buildRecommendationReasonsPrompt(input: {
       'One sentence per game, at most 25 words, speaking to the player directly.',
       'Name the games from their library that are given as the reason. Those are games they',
       'have played, finished or rated well; do not claim more about them than that.',
-      `Write in ${LANGUAGE[input.locale] ?? 'English'}.`,
       'Answer for every game in the list, using its number.',
+      languageRule(input.locale, 'every line'),
     ].join(' '),
     prompt: [
       CONTEXT[input.list] ?? '',

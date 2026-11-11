@@ -22,10 +22,14 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { request } from './api.ts';
+import type { Locale } from './i18n/index.tsx';
 
 /** Client for the AI-assisted features: connecting an AI, the chapter map, hints and 100% mode. */
 
 const anything = z.unknown();
+/** Query string naming an area (the current one when null) and the language of the texts. */
+const areaQuery = (checkpointId: string | null, locale: Locale) =>
+  new URLSearchParams({ locale, ...(checkpointId ? { checkpointId } : {}) }).toString();
 const wikiResponse = z.object({ wikiUrl: z.string().nullable() });
 
 export const assistApi = {
@@ -58,21 +62,25 @@ export const assistApi = {
   reportProgress: (runId: string, body: ReportProgressRequest) =>
     request('POST', `/api/playthroughs/${runId}/progress`, reportProgressResponseSchema, body),
 
-  hints: (runId: string) =>
-    request('GET', `/api/playthroughs/${runId}/hints`, revealedHintsResponseSchema),
+  hints: (runId: string, locale: Locale) =>
+    request(
+      'GET',
+      `/api/playthroughs/${runId}/hints?locale=${locale}`,
+      revealedHintsResponseSchema,
+    ),
   requestHint: (runId: string, body: HintRequest) =>
     request('POST', `/api/playthroughs/${runId}/hints`, hintResponseSchema, body),
 
-  checklist: (runId: string, checkpointId: string | null) =>
+  checklist: (runId: string, checkpointId: string | null, locale: Locale) =>
     request(
       'GET',
-      `/api/playthroughs/${runId}/checklist${checkpointId ? `?checkpointId=${encodeURIComponent(checkpointId)}` : ''}`,
+      `/api/playthroughs/${runId}/checklist?${areaQuery(checkpointId, locale)}`,
       areaChecklistResponseSchema,
     ),
-  generateChecklist: (runId: string, checkpointId: string | null) =>
+  generateChecklist: (runId: string, checkpointId: string | null, locale: Locale) =>
     request(
       'POST',
-      `/api/playthroughs/${runId}/checklist/generate${checkpointId ? `?checkpointId=${encodeURIComponent(checkpointId)}` : ''}`,
+      `/api/playthroughs/${runId}/checklist/generate?${areaQuery(checkpointId, locale)}`,
       areaChecklistResponseSchema,
     ),
   setCollected: (runId: string, collectibleId: string, isCollected: boolean) =>
@@ -93,9 +101,9 @@ export const assistKeys = {
   aiUsage: ['aiUsage'] as const,
   webSearch: ['webSearch'] as const,
   map: (runId: string) => ['map', runId] as const,
-  hints: (runId: string) => ['hints', runId] as const,
-  checklist: (runId: string, checkpointId: string | null) =>
-    ['checklist', runId, checkpointId] as const,
+  hints: (runId: string, locale: Locale) => ['hints', runId, locale] as const,
+  checklist: (runId: string, checkpointId: string | null, locale: Locale) =>
+    ['checklist', runId, checkpointId, locale] as const,
   assist: (runId: string) => ['assist', runId] as const,
 };
 
@@ -106,12 +114,20 @@ export const useWebSearch = () =>
   useQuery({ queryKey: assistKeys.webSearch, queryFn: assistApi.webSearch });
 export const useMap = (runId: string) =>
   useQuery({ queryKey: assistKeys.map(runId), queryFn: () => assistApi.map(runId) });
-export const useHints = (runId: string) =>
-  useQuery({ queryKey: assistKeys.hints(runId), queryFn: () => assistApi.hints(runId) });
-export const useChecklist = (runId: string, checkpointId: string | null, enabled: boolean) =>
+export const useHints = (runId: string, locale: Locale) =>
   useQuery({
-    queryKey: assistKeys.checklist(runId, checkpointId),
-    queryFn: () => assistApi.checklist(runId, checkpointId),
+    queryKey: assistKeys.hints(runId, locale),
+    queryFn: () => assistApi.hints(runId, locale),
+  });
+export const useChecklist = (
+  runId: string,
+  checkpointId: string | null,
+  locale: Locale,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: assistKeys.checklist(runId, checkpointId, locale),
+    queryFn: () => assistApi.checklist(runId, checkpointId, locale),
     enabled,
     retry: false,
   });

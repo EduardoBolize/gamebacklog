@@ -187,10 +187,50 @@ describe('acceptance flow: Ocarina of Time, 100% goal, hints', () => {
     expect(checklist.body.sources[0]?.url).toContain('zelda.fandom.com/wiki/');
     expect(t.ai.requests.at(-1)?.prompt).toContain('On the vines in the main room.');
 
+    // The answer is asked for in the language of the interface, names left as the game has them.
+    expect(t.ai.requests.at(-1)?.system).toContain(
+      'Write each "description" and "category" in Brazilian Portuguese',
+    );
+    expect(t.ai.requests.at(-1)?.system).toContain('do not translate them');
+
     const firstItem = checklist.body.collectibles[0]?.id;
     await call('PUT', `/api/playthroughs/${runId}/collectibles/${firstItem}`, {
       isCollected: true,
     });
+
+    // In another language the list counts as not generated yet; asking again rewrites the
+    // descriptions the AI wrote, keeps the items and what was ticked, and adds nothing twice.
+    const english = await call<AreaChecklistResponse>(
+      'GET',
+      `/api/playthroughs/${runId}/checklist?locale=en`,
+    );
+    expect(english.body.generated).toBe(false);
+    expect(english.body.collectibles).toHaveLength(2);
+    t.ai.answers = [
+      {
+        collectibles: [
+          {
+            name: 'Gold Skulltula (vines)',
+            description: 'Climb the vines in the main room.',
+            category: 'Gold Skulltula',
+            isMissable: false,
+          },
+        ],
+        missableAchievements: [],
+      },
+    ];
+    const rewritten = await call<AreaChecklistResponse>(
+      'POST',
+      `/api/playthroughs/${runId}/checklist/generate?locale=en`,
+    );
+    expect(t.ai.requests.at(-1)?.system).toContain('in English');
+    expect(rewritten.body.generated).toBe(true);
+    expect(
+      rewritten.body.collectibles.map((item) => [item.id, item.description, item.isCollected]),
+    ).toEqual([
+      [firstItem, 'Climb the vines in the main room.', true],
+      [checklist.body.collectibles[1]?.id, 'In the basement.', false],
+    ]);
     const ticked = await call<AreaChecklistResponse>('GET', `/api/playthroughs/${runId}/checklist`);
     expect(ticked.body.collectibles.map((item) => item.isCollected)).toEqual([true, false]);
 

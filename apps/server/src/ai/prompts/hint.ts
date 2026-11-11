@@ -1,7 +1,8 @@
 import type { HintKind, HintLevel } from '@gamebacklog/shared';
 import { z } from 'zod';
+import { languageRule } from './language.ts';
 
-export const HINT_PROMPT_VERSION = 'hint.v1';
+export const HINT_PROMPT_VERSION = 'hint.v2';
 
 export const hintSchema = z.object({
   hint: z.string().trim().min(1).max(4000),
@@ -24,8 +25,6 @@ const KIND_RULES: Record<HintKind, string> = {
   boss: 'The player is stuck on a boss. Useful help is strategy: attack patterns to watch for, weaknesses, and recommended preparation.',
 };
 
-const LANGUAGE: Record<string, string> = { 'pt-BR': 'Brazilian Portuguese', en: 'English' };
-
 export function buildHintPrompt(input: {
   title: string;
   checkpoint: string | null;
@@ -43,8 +42,9 @@ export function buildHintPrompt(input: {
       LEVEL_RULES[input.level],
       'Base the hint only on the numbered sources. If they do not cover the situation, say so plainly instead of guessing.',
       'Never mention anything that happens later in the game than where the player is.',
-      `Write the hint in ${LANGUAGE[input.locale] ?? 'English'}, addressing the player directly.`,
+      'Address the player directly.',
       'In "sources", list the numbers of the sources you actually used.',
+      languageRule(input.locale, 'the hint'),
     ].join(' '),
     prompt: [
       `Game: ${input.title}`,

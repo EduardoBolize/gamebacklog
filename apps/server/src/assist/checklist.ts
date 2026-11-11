@@ -34,11 +34,14 @@ function locate(ctx: AppContext, playthroughId: string, checkpointId: string | u
   return { game, rows, checkpoint };
 }
 
-function taskIdentity(gameId: string, checkpoint: CheckpointRow) {
+/** Language the descriptions are written in: the one the interface is in. */
+export type ChecklistLocale = 'pt-BR' | 'en';
+
+function taskIdentity(gameId: string, checkpoint: CheckpointRow, locale: ChecklistLocale) {
   return {
     feature: 'area_checklist',
     gameId,
-    cacheKeyParts: [checkpoint.id, normalizeText(checkpoint.name)],
+    cacheKeyParts: [checkpoint.id, normalizeText(checkpoint.name), locale],
     promptVersion: AREA_CHECKLIST_PROMPT_VERSION,
     schema: areaChecklistSchema,
   };
@@ -60,7 +63,7 @@ function buildResponse(
   gameId: string,
   rows: CheckpointRow[],
   checkpoint: CheckpointRow,
-  extra: { cached: boolean; sources?: Provenance[] },
+  extra: { cached: boolean; locale: ChecklistLocale; sources?: Provenance[] },
 ): AreaChecklistResponse {
   const items = ctx.db
     .select()
@@ -132,9 +135,9 @@ function buildResponse(
     })),
     nextPointOfNoReturn: nextPointOfNoReturn ? toCheckpoint(nextPointOfNoReturn) : null,
     sources: extra.sources ?? urls.map((url) => ({ origin: 'wiki' as const, url })),
-    generated:
-      items.some((item) => item.origin !== 'manual') ||
-      readAiCache(ctx, taskIdentity(gameId, checkpoint)) !== null,
+    // "Generated" means generated in this language: a list written in another one can be
+    // asked for again, and comes back with its descriptions rewritten.
+    generated: readAiCache(ctx, taskIdentity(gameId, checkpoint, extra.locale)) !== null,
     cached: extra.cached,
   };
 }
@@ -143,27 +146,32 @@ function buildResponse(
 export function getAreaChecklist(
   ctx: AppContext,
   playthroughId: string,
-  checkpointId?: string,
+  options: { checkpointId?: string; locale: ChecklistLocale },
 ): AreaChecklistResponse {
-  const { game, rows, checkpoint } = locate(ctx, playthroughId, checkpointId);
-  return buildResponse(ctx, playthroughId, game.id, rows, checkpoint, { cached: true });
+  const { game, rows, checkpoint } = locate(ctx, playthroughId, options.checkpointId);
+  return buildResponse(ctx, playthroughId, game.id, rows, checkpoint, {
+    cached: true,
+    locale: options.locale,
+  });
 }
 
 /**
  * Builds the completionist list for one area from the wiki: collectibles and secrets become a
  * checklist, and achievements the sources call missable are flagged and tied to the area.
- * Classifications the user made by hand are left alone.
+ * Descriptions are written in the language of the interface. Items and classifications the
+ * user made by hand are left alone.
  */
 export async function generateAreaChecklist(
   ctx: AppContext,
   playthroughId: string,
-  checkpointId?: string,
+  options: { checkpointId?: string; locale: ChecklistLocale },
 ): Promise<AreaChecklistResponse> {
-  const { game, rows, checkpoint } = locate(ctx, playthroughId, checkpointId);
+  const { locale } = options;
+  const { game, rows, checkpoint } = locate(ctx, playthroughId, options.checkpointId);
   const listed = gameAchievements(ctx, game.id);
 
   const result = await runAiTask<ContextDoc[], ReturnType<typeof areaChecklistSchema.parse>>(ctx, {
-    ...taskIdentity(game.id, checkpoint),
+    ...taskIdentity(game.id, checkpoint, locale),
     maxTokens: 2500,
     collect: () =>
       collectWikiDocs(ctx, game.id, [
@@ -176,6 +184,7 @@ export async function generateAreaChecklist(
         title: game.title,
         checkpoint: checkpoint.name,
         achievements: listed.map((row) => ({ name: row.name, description: row.description })),
+        locale,
         sources: renderSources(
           docs,
           [checkpoint.name, 'collectible', 'secret', 'missable', 'item', 'location'],
@@ -189,19 +198,33 @@ export async function generateAreaChecklist(
     const docs = result.context;
     const fetchedAt = ctx.now();
     ctx.db.transaction((tx) => {
-      const existing = new Set(
+      const existing = new Map(
         tx
-          .select({ name: collectibles.name })
+          .select()
           .from(collectibles)
           .where(
             and(eq(collectibles.gameId, game.id), eq(collectibles.checkpointId, checkpoint.id)),
           )
           .all()
-          .map((row) => normalizeText(row.name)),
+          .map((row) => [normalizeText(row.name), row]),
       );
+      const seen = new Set<string>();
       result.output.collectibles.forEach((item, index) => {
-        if (existing.has(normalizeText(item.name))) return;
-        existing.add(normalizeText(item.name));
+        const key = normalizeText(item.name);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const known = existing.get(key);
+        if (known) {
+          // Asked again (typically in another language): refresh what the AI wrote before,
+          // never what the user typed.
+          if (known.origin === 'ai') {
+            tx.update(collectibles)
+              .set({ description: item.description, category: item.category, fetchedAt })
+              .where(eq(collectibles.id, known.id))
+              .run();
+          }
+          return;
+        }
         tx.insert(collectibles)
           .values({
             gameId: game.id,
@@ -230,6 +253,7 @@ export async function generateAreaChecklist(
 
   return buildResponse(ctx, playthroughId, game.id, rows, checkpoint, {
     cached: result.cached,
+    locale,
     sources: result.context?.map((doc) => doc.provenance),
   });
 }

@@ -143,8 +143,15 @@ export async function requestHint(
   };
 }
 
-/** Hints already revealed where the player is now. Reading them again costs nothing. */
-export function listRevealedHints(ctx: AppContext, playthroughId: string): RevealedHintsResponse {
+/**
+ * Hints already revealed where the player is now, in the language asked for. Reading them
+ * again costs nothing.
+ */
+export function listRevealedHints(
+  ctx: AppContext,
+  playthroughId: string,
+  locale: HintRequest['locale'],
+): RevealedHintsResponse {
   const { playthrough, game } = gameOfPlaythrough(ctx.db, playthroughId);
   const checkpoint =
     loadMap(ctx.db, game.id)?.checkpoints.find(
@@ -164,13 +171,16 @@ export function listRevealedHints(ctx: AppContext, playthroughId: string): Revea
 
   return {
     checkpoint: checkpoint?.name ?? null,
-    items: rows.map((row) => ({
-      kind: row.kind,
-      level: Math.min(4, Math.max(1, row.level)) as 1 | 2 | 3 | 4,
-      stuckOn: row.stuckOn,
-      text: (row.content as { text?: string }).text ?? '',
-      sources: row.sources,
-    })),
+    items: rows
+      // A hint written for another language of the interface is not shown in this one.
+      .filter((row) => ((row.content as { locale?: string }).locale ?? 'pt-BR') === locale)
+      .map((row) => ({
+        kind: row.kind,
+        level: Math.min(4, Math.max(1, row.level)) as 1 | 2 | 3 | 4,
+        stuckOn: row.stuckOn,
+        text: (row.content as { text?: string }).text ?? '',
+        sources: row.sources,
+      })),
     aiConnected: ctx.ai.getActive() !== null,
   };
 }

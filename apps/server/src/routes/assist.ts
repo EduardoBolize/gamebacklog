@@ -22,7 +22,11 @@ import { SETTINGS, getSetting, setSetting } from '../settings/store.ts';
 
 const idParams = z.object({ id: z.string().min(1) });
 const collectibleParams = z.object({ id: z.string().min(1), collectibleId: z.string().min(1) });
-const checklistQuery = z.object({ checkpointId: z.string().min(1).optional() });
+const checklistQuery = z.object({
+  checkpointId: z.string().min(1).optional(),
+  locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
+});
+const localeQuery = z.object({ locale: z.enum(['pt-BR', 'en']).default('pt-BR') });
 const generateMapBody = z.object({ force: z.boolean().optional() }).default({});
 const OK = { ok: true } as const;
 
@@ -60,21 +64,19 @@ export function registerAssistRoutes(app: FastifyInstance, ctx: AppContext): voi
   });
 
   // --- Hints ---
-  app.get('/api/playthroughs/:id/hints', (request) => listRevealedHints(ctx, id(request.params)));
+  app.get('/api/playthroughs/:id/hints', (request) =>
+    listRevealedHints(ctx, id(request.params), localeQuery.parse(request.query).locale),
+  );
   app.post('/api/playthroughs/:id/hints', (request) =>
     requestHint(ctx, id(request.params), hintRequestSchema.parse(request.body)),
   );
 
   // --- 100% mode ---
   app.get('/api/playthroughs/:id/checklist', (request) =>
-    getAreaChecklist(ctx, id(request.params), checklistQuery.parse(request.query).checkpointId),
+    getAreaChecklist(ctx, id(request.params), checklistQuery.parse(request.query)),
   );
   app.post('/api/playthroughs/:id/checklist/generate', (request) =>
-    generateAreaChecklist(
-      ctx,
-      id(request.params),
-      checklistQuery.parse(request.query).checkpointId,
-    ),
+    generateAreaChecklist(ctx, id(request.params), checklistQuery.parse(request.query)),
   );
   app.put('/api/playthroughs/:id/collectibles/:collectibleId', (request) => {
     const params = collectibleParams.parse(request.params);

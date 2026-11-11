@@ -11,12 +11,12 @@ import { SourceList } from './ChapterMapSection.tsx';
  * Shown when the playthrough's goal is 100% or all achievements.
  */
 export function AreaChecklist({ run }: { run: Playthrough }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const completionist = run.goal !== 'finish';
   const map = useMap(run.id);
   const [chosen, setChosen] = useState<string | null>(null);
-  const checklist = useChecklist(run.id, chosen, completionist);
-  const generate = useApiMutation(() => assistApi.generateChecklist(run.id, chosen));
+  const checklist = useChecklist(run.id, chosen, locale, completionist);
+  const generate = useApiMutation(() => assistApi.generateChecklist(run.id, chosen, locale));
   const collect = useApiMutation(({ id, isCollected }: { id: string; isCollected: boolean }) =>
     assistApi.setCollected(run.id, id, isCollected),
   );
@@ -119,7 +119,11 @@ export function AreaChecklist({ run }: { run: Playthrough }) {
             disabled={generate.isPending}
             onClick={() => generate.mutate(undefined)}
           >
-            {generate.isPending ? t('checklist.generating') : t('checklist.generate')}
+            {generate.isPending
+              ? t('checklist.generating')
+              : data.collectibles.some((item) => item.origin === 'ai')
+                ? t('checklist.regenerate')
+                : t('checklist.generate')}
           </button>
         )}
       </div>

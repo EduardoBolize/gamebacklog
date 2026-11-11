@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { languageRule } from './language.ts';
 
-export const FUNNEL_ESTIMATE_PROMPT_VERSION = 'funnel-estimate.v1';
+export const FUNNEL_ESTIMATE_PROMPT_VERSION = 'funnel-estimate.v2';
 
 export const funnelEstimateSchema = z.object({
   /** Share of players who start the game and finish the main story, 0–100. */
@@ -8,8 +9,6 @@ export const funnelEstimateSchema = z.object({
   /** One or two sentences on what the estimate is based on. */
   rationale: z.string().trim().min(1).max(600),
 });
-
-const LANGUAGE: Record<string, string> = { 'pt-BR': 'Brazilian Portuguese', en: 'English' };
 
 export function buildFunnelEstimatePrompt(input: {
   title: string;
@@ -26,7 +25,7 @@ export function buildFunnelEstimatePrompt(input: {
       "Prefer figures stated in the sources. Without them, reason from the game's length and",
       'genre against typical completion rates, and say that this is what you did.',
       'This is an estimate and will be shown as one: give a single number, not a range.',
-      `Write the rationale in ${LANGUAGE[input.locale] ?? 'English'}.`,
+      languageRule(input.locale, 'the rationale'),
     ].join(' '),
     prompt: [
       `Game: ${input.title}${input.releaseYear ? ` (${input.releaseYear})` : ''}`,

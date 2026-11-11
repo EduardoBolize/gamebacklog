@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { languageRule } from './language.ts';
 
-export const AREA_CHECKLIST_PROMPT_VERSION = 'area-checklist.v1';
+export const AREA_CHECKLIST_PROMPT_VERSION = 'area-checklist.v2';
 
 export const areaChecklistSchema = z.object({
   collectibles: z
@@ -23,6 +24,7 @@ export function buildAreaChecklistPrompt(input: {
   title: string;
   checkpoint: string;
   achievements: { name: string; description: string | null }[];
+  locale: string;
   sources: string;
 }): { system: string; prompt: string } {
   return {
@@ -35,6 +37,9 @@ export function buildAreaChecklistPrompt(input: {
       'From the achievement list, return in "missableAchievements" the numbers of those the',
       'sources say can be permanently missed in or before this area. When unsure, leave it out.',
       'If the sources say nothing about this area, return empty lists.',
+      languageRule(input.locale, 'each "description" and "category"'),
+      'Each "name" is the name of the item as the game writes it, with a short note in',
+      'parentheses only when needed to tell two items apart.',
     ].join(' '),
     prompt: [
       `Game: ${input.title}`,

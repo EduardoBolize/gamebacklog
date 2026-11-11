@@ -109,8 +109,8 @@ function Ladder({ runId, kind, stuckOn }: { runId: string; kind: HintKind; stuck
 }
 
 export function HintsTab({ runId, initialKind }: { runId: string; initialKind: HintKind }) {
-  const { t } = useI18n();
-  const hints = useHints(runId);
+  const { t, locale } = useI18n();
+  const hints = useHints(runId, locale);
   const [kind, setKind] = useState<HintKind>(initialKind);
   const [stuckOn, setStuckOn] = useState('');
   // The ladder is tied to what was asked: changing the question starts a new one.

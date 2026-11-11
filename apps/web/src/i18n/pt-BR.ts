@@ -631,6 +631,7 @@ export const ptBR = {
     collectibles: 'Colecionáveis e segredos',
     missableTag: 'perdível',
     generate: 'Listar o que há nesta área',
+    regenerate: 'Reescrever a lista em português',
     generating: 'Lendo a wiki desta área…',
     needsAi: 'Conecte uma IA para listar os colecionáveis desta área a partir da wiki.',
     nothingFound: 'As fontes não listam colecionáveis para esta área.',

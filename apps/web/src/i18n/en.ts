@@ -631,6 +631,7 @@ export const en: Messages = {
     collectibles: 'Collectibles and secrets',
     missableTag: 'missable',
     generate: 'List what is in this area',
+    regenerate: 'Rewrite the list in English',
     generating: 'Reading the wiki for this area…',
     needsAi: 'Connect an AI to list the collectibles of this area from the wiki.',
     nothingFound: 'The sources list no collectibles for this area.',
