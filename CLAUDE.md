@@ -29,7 +29,7 @@ colecionáveis e perdíveis por área. Próxima: Fase 3 (recomendações).
 Ainda não existe: recomendações, painel de estatísticas, RAWG e RetroAchievements (as chaves já
 podem ser guardadas, mas nada as usa), README e LICENSE.
 
-Ficaram de fora da Fase 2, à espera de decisão do usuário:
+Em stand-by por decisão do usuário (não integrar sem ele pedir):
 
 - **Reddit:** os termos da API restringem o uso do conteúdo com IA; não foi integrado.
 - **PCGamingWiki:** a API respondeu com um desafio anti-robô da Cloudflare; não foi integrado.
