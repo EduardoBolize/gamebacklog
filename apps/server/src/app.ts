@@ -6,6 +6,7 @@ import type { AppContext } from './context.ts';
 import { registerErrorHandler } from './errors.ts';
 import { registerAchievementRoutes } from './routes/achievements.ts';
 import { registerAiRoutes } from './routes/ai.ts';
+import { registerAssistRoutes } from './routes/assist.ts';
 import { registerHealthRoute } from './routes/health.ts';
 import { registerLibraryRoutes } from './routes/library.ts';
 import { registerSourceRoutes } from './routes/sources.ts';
@@ -32,6 +33,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerSourceRoutes(app, ctx);
   registerTransferRoutes(app, ctx);
   registerAiRoutes(app, ctx);
+  registerAssistRoutes(app, ctx);
 
   if (webDistDir) {
     if (!existsSync(path.join(webDistDir, 'index.html'))) {

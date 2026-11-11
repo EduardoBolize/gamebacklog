@@ -7,6 +7,8 @@ import { isoDateTimeSchema } from './common.ts';
 export const progressEventSchema = z.object({
   id: z.string(),
   rawText: z.string().nullable(),
+  /** Checkpoint the text was resolved to, when it was. */
+  checkpointName: z.string().nullable(),
   occurredAt: isoDateTimeSchema,
 });
 export type ProgressEvent = z.infer<typeof progressEventSchema>;

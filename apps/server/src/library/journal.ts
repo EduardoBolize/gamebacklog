@@ -1,5 +1,4 @@
 import type {
-  CreateProgressRequest,
   CreateSessionRequest,
   ProgressEvent,
   Review,
@@ -9,7 +8,13 @@ import type {
 } from '@gamebacklog/shared';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.ts';
-import { playthroughs, progressEvents, reviews, sessions } from '../db/schema/index.ts';
+import {
+  checkpoints,
+  playthroughs,
+  progressEvents,
+  reviews,
+  sessions,
+} from '../db/schema/index.ts';
 import { badRequest, notFound } from '../errors.ts';
 import { requireEntry, requirePlaythrough } from './service.ts';
 
@@ -20,28 +25,18 @@ type Queryable = Pick<AppDatabase, 'select' | 'insert' | 'update' | 'delete'>;
 export function listProgress(db: AppDatabase, playthroughId: string): ProgressEvent[] {
   requirePlaythrough(db, playthroughId);
   return db
-    .select()
+    .select({ event: progressEvents, checkpointName: checkpoints.name })
     .from(progressEvents)
+    .leftJoin(checkpoints, eq(checkpoints.id, progressEvents.checkpointId))
     .where(eq(progressEvents.playthroughId, playthroughId))
     .orderBy(desc(progressEvents.occurredAt), progressEvents.id)
     .all()
-    .map((row) => ({ id: row.id, rawText: row.rawText, occurredAt: row.occurredAt.toISOString() }));
-}
-
-/** Without AI the text is stored exactly as typed; Phase 2 resolves it to a checkpoint. */
-export function addProgress(
-  db: AppDatabase,
-  playthroughId: string,
-  request: CreateProgressRequest,
-  now: Date,
-): ProgressEvent {
-  requirePlaythrough(db, playthroughId);
-  const row = db
-    .insert(progressEvents)
-    .values({ playthroughId, rawText: request.rawText, occurredAt: now })
-    .returning()
-    .get();
-  return { id: row.id, rawText: row.rawText, occurredAt: row.occurredAt.toISOString() };
+    .map(({ event, checkpointName }) => ({
+      id: event.id,
+      rawText: event.rawText,
+      checkpointName,
+      occurredAt: event.occurredAt.toISOString(),
+    }));
 }
 
 // --- Sessions ----------------------------------------------------------------------

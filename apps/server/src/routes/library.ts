@@ -1,7 +1,6 @@
 import {
   addGameRequestSchema,
   createPlaythroughRequestSchema,
-  createProgressRequestSchema,
   createSessionRequestSchema,
   saveReviewRequestSchema,
   setManualTimesRequestSchema,
@@ -13,7 +12,6 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../context.ts';
 import {
-  addProgress,
   createSession,
   deleteReview,
   deleteSession,
@@ -111,19 +109,6 @@ export function registerLibraryRoutes(app: FastifyInstance, ctx: AppContext): vo
   app.get('/api/playthroughs/:id/progress', (request) => ({
     items: listProgress(db, id(request.params)),
   }));
-  app.post('/api/playthroughs/:id/progress', (request, reply) =>
-    reply
-      .code(201)
-      .send(
-        addProgress(
-          db,
-          id(request.params),
-          createProgressRequestSchema.parse(request.body),
-          ctx.now(),
-        ),
-      ),
-  );
-
   // --- Sessions ---
   app.get('/api/library/:id/sessions', (request) => ({
     items: listSessions(db, id(request.params)),

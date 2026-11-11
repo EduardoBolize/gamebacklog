@@ -209,8 +209,26 @@ export const hintRequestSchema = z.object({
   level: hintLevelSchema,
   /** Optional "where I'm stuck". */
   stuckOn: z.string().trim().max(300).optional(),
+  /** Language the hint is written in. */
+  locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
 });
 export type HintRequest = z.infer<typeof hintRequestSchema>;
+
+/** Hints already revealed for the current checkpoint, so reopening the tab costs nothing. */
+export const revealedHintsResponseSchema = z.object({
+  checkpoint: z.string().nullable(),
+  items: z.array(
+    z.object({
+      kind: hintKindSchema,
+      level: hintLevelSchema,
+      stuckOn: z.string().nullable(),
+      text: z.string(),
+      sources: z.array(provenanceSchema),
+    }),
+  ),
+  aiConnected: z.boolean(),
+});
+export type RevealedHintsResponse = z.infer<typeof revealedHintsResponseSchema>;
 
 export const hintResponseSchema = z.object({
   kind: hintKindSchema,
@@ -279,6 +297,10 @@ export const gameAssistResponseSchema = z.object({
     .nullable(),
 });
 export type GameAssistResponse = z.infer<typeof gameAssistResponseSchema>;
+
+export const funnelEstimateRequestSchema = z.object({
+  locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
+});
 
 export const funnelEstimateResponseSchema = z.object({
   /** Always an estimate: there is no achievement data behind it. */
