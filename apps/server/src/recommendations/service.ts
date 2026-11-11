@@ -294,7 +294,10 @@ function factsOf(item: RecommendedGame): RecommendationFacts {
 
 function explainTask(spec: ExplainSpec, locale: Locale) {
   const groups = spec.groups.filter((items) => items.length > 0);
-  const perGroup = Math.ceil(MAX_EXPLAINED / Math.max(1, groups.length));
+  const total = groups.reduce((count, items) => count + items.length, 0);
+  // Everything, when it fits in one request; otherwise the top of each list.
+  const perGroup =
+    total <= MAX_EXPLAINED ? MAX_EXPLAINED : Math.ceil(MAX_EXPLAINED / Math.max(1, groups.length));
   const top = groups.flatMap((items) => items.slice(0, perGroup)).slice(0, MAX_EXPLAINED);
   const facts = top.map(factsOf);
   return {

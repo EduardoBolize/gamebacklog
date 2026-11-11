@@ -36,9 +36,10 @@ Em stand-by por decisão do usuário (não integrar sem ele pedir):
 - **Reddit:** os termos da API restringem o uso do conteúdo com IA; não foi integrado.
 - **PCGamingWiki:** a API respondeu com um desafio anti-robô da Cloudflare; não foi integrado.
 
-Só o Claude Code (CLI) foi testado com um modelo de verdade ("Testar conexão" respondeu). Os
-outros provedores foram testados apenas com dublês (um executável falso, um servidor compatível
-com OpenAI). Nenhuma função de IA (mapa, dicas, checklist) rodou ainda com um modelo real.
+Só o Claude Code (CLI) foi testado com um modelo de verdade: "Testar conexão" e a explicação
+das recomendações (Fase 3) responderam. Os outros provedores foram testados apenas com dublês
+(um executável falso, um servidor compatível com OpenAI). O mapa de capítulos, as dicas e o
+checklist da Fase 2 ainda não rodaram com um modelo real.
 
 O desenho das telas da Fase 1 está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
 
