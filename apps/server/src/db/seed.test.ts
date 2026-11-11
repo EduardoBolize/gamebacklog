@@ -1,4 +1,5 @@
-import { eq, sql } from 'drizzle-orm';
+import { LIBRARY_STATUSES } from '@gamebacklog/shared';
+import { eq, isNotNull, sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import { openDatabase, type AppDatabase, type DatabaseHandle } from './client.ts';
 import { runMigrations } from './migrate.ts';
@@ -33,18 +34,26 @@ afterEach(() => {
 });
 
 describe('seedDatabase', () => {
-  it('adds example games across several platforms and every library status group', () => {
+  it('adds example games across several platforms and every library status', () => {
     const db = seededDb();
-    expect(db.select().from(games).all()).toHaveLength(6);
+    expect(db.select().from(games).all()).toHaveLength(27);
 
     const statuses = db
       .select({ status: libraryEntries.status })
       .from(libraryEntries)
       .all()
       .map((row) => row.status);
-    expect(new Set(statuses)).toEqual(
-      new Set(['playing', 'completed', 'paused', 'backlog', 'wishlist']),
-    );
+    expect(new Set(statuses)).toEqual(new Set(LIBRARY_STATUSES));
+  });
+
+  it('has more than 15 rated games, for the taste profile to work with', () => {
+    const db = seededDb();
+    const rated = db
+      .selectDistinct({ entryId: reviews.libraryEntryId })
+      .from(reviews)
+      .where(isNotNull(reviews.score))
+      .all();
+    expect(rated.length).toBeGreaterThanOrEqual(15);
   });
 
   it('includes a game with a finished run and an NG+ run', () => {

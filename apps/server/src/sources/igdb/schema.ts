@@ -42,6 +42,13 @@ export const igdbExternalGameListSchema = z.array(
   z.object({ uid: z.string(), game: z.number().int() }),
 );
 
+/** `similar_games` is a plain list of game IDs. */
+export const igdbSimilarListSchema = z.array(
+  z.object({ id: z.number().int(), similar_games: z.array(z.number().int()).optional() }),
+);
+
+export const igdbGenreListSchema = z.array(z.object({ id: z.number().int(), name: z.string() }));
+
 /** `external_game_sources` ID for Steam (same value as the old `category` enum). */
 export const IGDB_STEAM_SOURCE_ID = 1;
 

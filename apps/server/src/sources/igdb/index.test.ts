@@ -184,4 +184,68 @@ describe('IGDB source', () => {
       'where external_game_source = 1 & uid = ("367520","570940","999999");',
     );
   });
+
+  it('lists similar games in the order IGDB gives, and caches the list', async () => {
+    const { source, fetch } = createSource(
+      tokenRoute,
+      whenUrl('/v4/games', (call) =>
+        call.body?.startsWith('fields similar_games;')
+          ? { json: [{ id: 1029, similar_games: [81085, 14593, 424242] }] }
+          : { json: gamesById },
+      ),
+    );
+    const { data, provenance } = await source.getSimilar('1029');
+
+    // 424242 is not in the catalog answer: it is left out rather than breaking the list.
+    expect(data.map((game) => game.title)).toEqual(['Dark Souls: Remastered', 'Hollow Knight']);
+    expect(provenance.origin).toBe('igdb');
+    const bodies = fetch.calls.map((call) => call.body ?? '');
+    expect(bodies).toContain('fields similar_games; where id = 1029; limit 1;');
+    expect(bodies.at(-1)).toContain('where id = (81085,14593,424242);');
+
+    const calls = fetch.calls.length;
+    expect((await source.getSimilar('1029')).fromCache).toBe(true);
+    expect(fetch.calls).toHaveLength(calls);
+
+    expect((await source.getSimilar('not-a-number')).data).toEqual([]);
+  });
+
+  it('answers with no similar games when IGDB lists none', async () => {
+    const { source, fetch } = createSource(
+      tokenRoute,
+      whenUrl('/v4/games', { json: [{ id: 1029 }] }),
+    );
+    expect((await source.getSimilar('1029')).data).toEqual([]);
+    expect(fetch.calls.filter((call) => call.url.endsWith('/v4/games'))).toHaveLength(1);
+  });
+
+  it('finds the best-rated games of a genre by the genre ID', async () => {
+    const { source, fetch } = createSource(
+      tokenRoute,
+      whenUrl('/v4/genres', {
+        json: [
+          { id: 8, name: 'Platform' },
+          { id: 12, name: 'Role-playing (RPG)' },
+        ],
+      }),
+      whenUrl('/v4/games', { json: gamesById }),
+    );
+    const { data } = await source.getTopByGenre('role-playing (rpg)');
+
+    expect(data).toHaveLength(2);
+    const query = fetch.calls.at(-1)?.body ?? '';
+    expect(query).toContain(
+      'where genres = (12) & version_parent = null & parent_game = null & total_rating_count >= 50;',
+    );
+    expect(query).toContain('sort total_rating desc; limit 50;');
+
+    // The genre list and the ranking are both cached.
+    const calls = fetch.calls.length;
+    await source.getTopByGenre('Role-playing (RPG)');
+    expect(fetch.calls).toHaveLength(calls);
+
+    // A genre the catalog does not have costs no games request.
+    expect((await source.getTopByGenre('Soulslike')).data).toEqual([]);
+    expect(fetch.calls).toHaveLength(calls);
+  });
 });

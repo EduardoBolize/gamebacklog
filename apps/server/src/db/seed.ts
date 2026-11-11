@@ -72,6 +72,335 @@ const COLLECTIBLE = {
   dekuSkulltula2: 'seed-collectible-ocarina-deku-skulltula-2',
 } as const;
 
+/**
+ * The rest of the example library: enough finished, rated and dropped games for the taste
+ * profile to mean something, and a backlog for the recommendations to rank.
+ */
+interface ExtraGame {
+  slug: string;
+  title: string;
+  year: number;
+  platforms: string[];
+  genres: string[];
+  themes: string[];
+  tags: string[];
+  franchise?: string;
+  status: 'completed' | 'completed_100' | 'dropped' | 'backlog';
+  /** Platform the example user plays it on. */
+  platform: string;
+  score?: number;
+  favorite?: boolean;
+  /** Main story and completionist times, in hours. */
+  times?: [main: number, completionist: number];
+  playedHours?: number;
+}
+
+const PC = 'PC';
+const PS4 = 'PlayStation 4';
+const SWITCH = 'Nintendo Switch';
+const RPG = 'Role-playing (RPG)';
+
+const EXTRA_GAMES: ExtraGame[] = [
+  {
+    slug: 'bloodborne',
+    title: 'Bloodborne',
+    year: 2015,
+    platforms: [PS4],
+    genres: [RPG],
+    themes: ['Action', 'Horror'],
+    tags: ['soulslike', 'boss fights', 'gothic'],
+    status: 'completed',
+    platform: PS4,
+    score: 9.5,
+    times: [33, 76],
+    playedHours: 41,
+  },
+  {
+    slug: 'elden-ring',
+    title: 'Elden Ring',
+    year: 2022,
+    platforms: [PC, 'PlayStation 5', 'Xbox Series X|S'],
+    genres: [RPG, 'Adventure'],
+    themes: ['Fantasy', 'Action', 'Open world'],
+    tags: ['soulslike', 'open world', 'boss fights'],
+    franchise: 'Elden Ring',
+    status: 'completed_100',
+    platform: PC,
+    score: 10,
+    favorite: true,
+    times: [60, 133],
+    playedHours: 142,
+  },
+  {
+    slug: 'sekiro',
+    title: 'Sekiro: Shadows Die Twice',
+    year: 2019,
+    platforms: [PC, PS4, 'Xbox One'],
+    genres: ['Adventure'],
+    themes: ['Action', 'Historical'],
+    tags: ['soulslike', 'stealth', 'boss fights'],
+    status: 'completed',
+    platform: PC,
+    score: 8.5,
+    times: [30, 70],
+    playedHours: 38,
+  },
+  {
+    slug: 'super-metroid',
+    title: 'Super Metroid',
+    year: 1994,
+    platforms: ['Super Nintendo Entertainment System'],
+    genres: ['Platform', 'Adventure', 'Shooter'],
+    themes: ['Science fiction'],
+    tags: ['metroidvania', 'exploration'],
+    franchise: 'Metroid',
+    status: 'completed',
+    platform: 'Super Nintendo Entertainment System',
+    score: 9,
+    times: [8, 10],
+    playedHours: 9,
+  },
+  {
+    slug: 'ori-and-the-blind-forest',
+    title: 'Ori and the Blind Forest',
+    year: 2015,
+    platforms: [PC, 'Xbox One', SWITCH],
+    genres: ['Platform', 'Adventure'],
+    themes: ['Fantasy'],
+    tags: ['metroidvania', 'precision platformer'],
+    franchise: 'Ori',
+    status: 'completed',
+    platform: PC,
+    score: 8.5,
+    times: [8, 12],
+    playedHours: 10,
+  },
+  {
+    slug: 'the-witcher-3',
+    title: 'The Witcher 3: Wild Hunt',
+    year: 2015,
+    platforms: [PC, PS4, 'Xbox One', SWITCH],
+    genres: [RPG, 'Adventure'],
+    themes: ['Fantasy', 'Open world'],
+    tags: ['open world', 'story rich', 'choices matter'],
+    franchise: 'The Witcher',
+    status: 'completed',
+    platform: PC,
+    score: 9,
+    times: [52, 174],
+    playedHours: 88,
+  },
+  {
+    slug: 'persona-5-royal',
+    title: 'Persona 5 Royal',
+    year: 2020,
+    platforms: [PS4, PC, SWITCH],
+    genres: [RPG],
+    themes: ['Fantasy'],
+    tags: ['jrpg', 'turn-based', 'social simulation'],
+    franchise: 'Persona',
+    status: 'dropped',
+    platform: PS4,
+    score: 5.5,
+    times: [101, 143],
+    playedHours: 20,
+  },
+  {
+    slug: 'final-fantasy-vii-remake',
+    title: 'Final Fantasy VII Remake',
+    year: 2020,
+    platforms: [PS4, PC],
+    genres: [RPG],
+    themes: ['Fantasy', 'Science fiction'],
+    tags: ['jrpg', 'story rich'],
+    franchise: 'Final Fantasy',
+    status: 'completed',
+    platform: PS4,
+    score: 7,
+    times: [33, 87],
+    playedHours: 36,
+  },
+  {
+    slug: 'stardew-valley',
+    title: 'Stardew Valley',
+    year: 2016,
+    platforms: [PC, SWITCH, PS4, 'Xbox One'],
+    genres: ['Simulator', RPG, 'Indie'],
+    themes: ['Sandbox'],
+    tags: ['farming', 'life simulation'],
+    status: 'dropped',
+    platform: SWITCH,
+    score: 4,
+    times: [53, 170],
+    playedHours: 6,
+  },
+  {
+    slug: 'civilization-vi',
+    title: "Sid Meier's Civilization VI",
+    year: 2016,
+    platforms: [PC],
+    genres: ['Strategy', 'Turn-based strategy (TBS)'],
+    themes: ['Historical'],
+    tags: ['turn-based', '4x'],
+    franchise: 'Civilization',
+    status: 'dropped',
+    platform: PC,
+    score: 3.5,
+    playedHours: 5,
+  },
+  {
+    slug: 'portal-2',
+    title: 'Portal 2',
+    year: 2011,
+    platforms: [PC],
+    genres: ['Puzzle', 'Platform', 'Shooter'],
+    themes: ['Science fiction', 'Comedy'],
+    tags: ['puzzles', 'first person'],
+    franchise: 'Portal',
+    status: 'completed',
+    platform: PC,
+    score: 9,
+    times: [8.5, 21],
+    playedHours: 10,
+  },
+  {
+    slug: 'disco-elysium',
+    title: 'Disco Elysium',
+    year: 2019,
+    platforms: [PC],
+    genres: [RPG],
+    themes: ['Mystery'],
+    tags: ['story rich', 'choices matter', 'isometric'],
+    status: 'completed',
+    platform: PC,
+    score: 8,
+    times: [23, 47],
+    playedHours: 27,
+  },
+  {
+    slug: 'forza-horizon-5',
+    title: 'Forza Horizon 5',
+    year: 2021,
+    platforms: [PC, 'Xbox Series X|S'],
+    genres: ['Racing'],
+    themes: ['Open world'],
+    tags: ['open world', 'driving'],
+    franchise: 'Forza',
+    status: 'dropped',
+    platform: PC,
+    score: 5,
+    playedHours: 7,
+  },
+  {
+    slug: 'dead-cells',
+    title: 'Dead Cells',
+    year: 2018,
+    platforms: [PC, SWITCH, PS4, 'Xbox One'],
+    genres: ['Platform', 'Indie'],
+    themes: ['Action', 'Fantasy'],
+    tags: ['roguelike', 'metroidvania'],
+    status: 'completed',
+    platform: SWITCH,
+    score: 8,
+    times: [14, 90],
+    playedHours: 31,
+  },
+  {
+    slug: 'god-of-war',
+    title: 'God of War',
+    year: 2018,
+    platforms: [PS4, PC],
+    genres: ['Adventure', RPG],
+    themes: ['Action', 'Fantasy'],
+    tags: ['story rich', 'boss fights'],
+    franchise: 'God of War',
+    status: 'completed',
+    platform: PS4,
+    score: 8.5,
+    times: [21, 51],
+    playedHours: 26,
+  },
+  {
+    slug: 'lies-of-p',
+    title: 'Lies of P',
+    year: 2023,
+    platforms: [PC, 'PlayStation 5', 'Xbox Series X|S'],
+    genres: [RPG],
+    themes: ['Action', 'Fantasy'],
+    tags: ['soulslike', 'boss fights'],
+    status: 'backlog',
+    platform: PC,
+    times: [29, 61],
+  },
+  {
+    slug: 'blasphemous',
+    title: 'Blasphemous',
+    year: 2019,
+    platforms: [PC, SWITCH, PS4, 'Xbox One'],
+    genres: ['Platform', 'Adventure', 'Indie'],
+    themes: ['Action', 'Horror'],
+    tags: ['metroidvania', 'soulslike'],
+    franchise: 'Blasphemous',
+    status: 'backlog',
+    platform: SWITCH,
+    times: [13, 22],
+  },
+  {
+    slug: 'hollow-knight-silksong',
+    title: 'Hollow Knight: Silksong',
+    year: 2025,
+    platforms: [PC, SWITCH, 'PlayStation 5', 'Xbox Series X|S'],
+    genres: ['Platform', 'Adventure'],
+    themes: ['Fantasy'],
+    tags: ['metroidvania', 'exploration', 'boss fights'],
+    franchise: 'Hollow Knight',
+    status: 'backlog',
+    platform: PC,
+  },
+  {
+    slug: 'slay-the-spire',
+    title: 'Slay the Spire',
+    year: 2019,
+    platforms: [PC, SWITCH, PS4],
+    genres: ['Strategy', 'Card & Board Game', 'Indie'],
+    themes: ['Fantasy'],
+    tags: ['roguelike', 'turn-based', 'deckbuilder'],
+    status: 'backlog',
+    platform: PC,
+    times: [12, 100],
+  },
+  {
+    slug: 'cities-skylines',
+    title: 'Cities: Skylines',
+    year: 2015,
+    platforms: [PC],
+    genres: ['Simulator', 'Strategy'],
+    themes: ['Sandbox'],
+    tags: ['city builder'],
+    status: 'backlog',
+    platform: PC,
+  },
+  {
+    slug: 'football-manager-2024',
+    title: 'Football Manager 2024',
+    year: 2023,
+    platforms: [PC],
+    genres: ['Sport', 'Simulator', 'Strategy'],
+    themes: [],
+    tags: ['management'],
+    franchise: 'Football Manager',
+    status: 'backlog',
+    platform: PC,
+  },
+];
+
+const EXTRA_RUN_STATUS = {
+  completed: 'completed',
+  completed_100: 'completed',
+  dropped: 'dropped',
+  backlog: 'not_started',
+} as const;
+
 export function seedDatabase(db: AppDatabase): void {
   db.transaction((tx) => {
     tx.insert(games)
@@ -523,5 +852,74 @@ export function seedDatabase(db: AppDatabase): void {
       })
       .onConflictDoNothing()
       .run();
+
+    for (const extra of EXTRA_GAMES) {
+      const gameId = `seed-game-${extra.slug}`;
+      const entryId = `seed-entry-${extra.slug}`;
+      const runId = `seed-run-${extra.slug}-1`;
+      const finished = extra.status === 'completed' || extra.status === 'completed_100';
+
+      tx.insert(games)
+        .values({
+          id: gameId,
+          title: extra.title,
+          releaseYear: extra.year,
+          platforms: extra.platforms,
+          genres: extra.genres,
+          themes: extra.themes,
+          tags: extra.tags,
+          franchise: extra.franchise ?? null,
+          origin: 'manual',
+        })
+        .onConflictDoNothing()
+        .run();
+      if (extra.times) {
+        tx.insert(gameTimes)
+          .values({
+            id: `seed-times-${extra.slug}`,
+            gameId,
+            origin: 'manual',
+            mainMinutes: hours(extra.times[0]),
+            completionistMinutes: hours(extra.times[1]),
+          })
+          .onConflictDoNothing()
+          .run();
+      }
+      tx.insert(libraryEntries)
+        .values({
+          id: entryId,
+          gameId,
+          status: extra.status,
+          platform: extra.platform,
+          isFavorite: extra.favorite ?? false,
+        })
+        .onConflictDoNothing()
+        .run();
+      tx.insert(playthroughs)
+        .values({
+          id: runId,
+          libraryEntryId: entryId,
+          number: 1,
+          goal: extra.status === 'completed_100' ? 'full_100' : 'finish',
+          status: EXTRA_RUN_STATUS[extra.status],
+          playtimeMinutes: extra.playedHours === undefined ? null : hours(extra.playedHours),
+        })
+        .onConflictDoNothing()
+        .run();
+      if (extra.score !== undefined) {
+        tx.insert(reviews)
+          .values({
+            id: `seed-review-${extra.slug}`,
+            libraryEntryId: entryId,
+            playthroughId: runId,
+            score: extra.score,
+            timeToBeatMinutes:
+              finished && extra.playedHours !== undefined ? hours(extra.playedHours) : null,
+            reviewedAt: at('2026-08-01T12:00:00.000Z'),
+          })
+          .onConflictDoNothing()
+          .run();
+      }
+    }
   });
 }

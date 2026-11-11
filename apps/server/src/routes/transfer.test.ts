@@ -182,7 +182,7 @@ describe('export → wipe → import round trip', () => {
     const exported = await call<ExportFile>(original, 'GET', '/api/export?includeCaches=true');
     expect(exported.status).toBe(200);
     const file = exportFileSchema.parse(exported.body);
-    expect(file.data.libraryEntries).toHaveLength(10 + 6);
+    expect(file.data.libraryEntries).toHaveLength(10 + 27);
     expect(
       new Set(file.data.libraryEntries.map((entry) => entry.platform)).size,
     ).toBeGreaterThanOrEqual(10);
@@ -203,7 +203,7 @@ describe('export → wipe → import round trip', () => {
       file: exported.body,
     });
     expect(imported.status).toBe(200);
-    expect(imported.body.library).toEqual({ added: 16, updated: 0, unchanged: 0, removed: 0 });
+    expect(imported.body.library).toEqual({ added: 37, updated: 0, unchanged: 0, removed: 0 });
 
     const roundTripped = await exportOf(restored, true);
     expect(roundTripped.data).toEqual(file.data);

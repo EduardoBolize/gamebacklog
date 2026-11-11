@@ -47,6 +47,10 @@ export function catalogGame(
 export interface FakeSources {
   catalog: CatalogGameData[];
   catalogConfigured: boolean;
+  /** When true, every catalog request fails as if IGDB were down. */
+  catalogFail: boolean;
+  /** IGDB id → ids of the games the catalog lists as similar. */
+  similarGames: Record<string, string[]>;
   times: Record<string, GameTimesData>;
   timesFail: boolean;
   timesCalls: string[];
@@ -79,7 +83,10 @@ const base = { cacheTtlMs: 0, rateLimit: { maxRequests: 100, perMs: 1 } };
 function fakeCatalog(state: FakeSources): CatalogSource {
   const assertConfigured = () => {
     if (!state.catalogConfigured) throw new SourceError('igdb', 'not_configured', 'not configured');
+    if (state.catalogFail) throw new SourceError('igdb', 'unreachable', 'Could not reach IGDB');
   };
+  const byId = (externalId: string) =>
+    state.catalog.find((candidate) => candidate.externalId === externalId);
   return {
     ...base,
     id: 'igdb',
@@ -115,6 +122,24 @@ function fakeCatalog(state: FakeSources): CatalogSource {
         if (game) found.set(appId, game);
       }
       return Promise.resolve(found);
+    },
+    async getSimilar(externalId) {
+      await Promise.resolve();
+      assertConfigured();
+      const games = (state.similarGames[externalId] ?? [])
+        .map(byId)
+        .filter((game) => game !== undefined);
+      return sourced('igdb', games);
+    },
+    async getTopByGenre(genre) {
+      await Promise.resolve();
+      assertConfigured();
+      const wanted = genre.toLowerCase();
+      // Catalog order stands in for "best rated first".
+      return sourced(
+        'igdb',
+        state.catalog.filter((game) => game.genres.some((name) => name.toLowerCase() === wanted)),
+      );
     },
   };
 }
@@ -283,6 +308,8 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
   const sources: FakeSources = {
     catalog: [],
     catalogConfigured: true,
+    catalogFail: false,
+    similarGames: {},
     times: {},
     timesFail: false,
     timesCalls: [],

@@ -25,6 +25,10 @@ export interface CatalogSource extends SourceAdapter {
   getById(externalId: string): Promise<Sourced<CatalogGameData> | null>;
   /** Looks games up by Steam app ID. Apps the catalog does not know are absent from the map. */
   findBySteamAppIds(appIds: string[]): Promise<Map<string, CatalogGameData>>;
+  /** Games the catalog itself lists as similar, in the catalog's order. */
+  getSimilar(externalId: string): Promise<Sourced<CatalogGameData[]>>;
+  /** Best-rated games of a genre, best first. Empty when the catalog has no such genre. */
+  getTopByGenre(genre: string): Promise<Sourced<CatalogGameData[]>>;
 }
 
 export interface GameTimesData {

@@ -11,6 +11,8 @@ import {
   IGDB_STEAM_SOURCE_ID,
   igdbExternalGameListSchema,
   igdbGameListSchema,
+  igdbGenreListSchema,
+  igdbSimilarListSchema,
   igdbTokenSchema,
 } from './schema.ts';
 
@@ -20,6 +22,11 @@ const API_URL = 'https://api.igdb.com/v4';
 const HOUR = 60 * 60 * 1000;
 const SEARCH_TTL_MS = 24 * HOUR;
 const GAME_TTL_MS = 7 * 24 * HOUR;
+/** The genre list is a handful of rows that almost never change. */
+const GENRES_TTL_MS = 30 * 24 * HOUR;
+/** A "top of the genre" list needs enough votes behind each score to mean something. */
+const MIN_RATINGS = 50;
+const TOP_BY_GENRE_LIMIT = 50;
 /** Bump when `normalizeIgdbGame` changes shape, so old cache rows are ignored. */
 const CACHE_VERSION = 1;
 /** IGDB allows 500 rows per request. */
@@ -225,6 +232,56 @@ export function createIgdbSource(options: IgdbSourceOptions): CatalogSource {
         if (game) found.set(appId, game);
       }
       return found;
+    },
+
+    async getSimilar(externalId) {
+      if (!/^\d+$/.test(externalId)) return sourced([], now(), false);
+      const entry = await cache.remember(
+        'igdb',
+        `similar:${externalId}`,
+        { ttlMs: GAME_TTL_MS, version: CACHE_VERSION },
+        async () => {
+          const rows = await query(
+            'games',
+            `fields similar_games; where id = ${externalId}; limit 1;`,
+            igdbSimilarListSchema,
+          );
+          const ids = (rows[0]?.similar_games ?? []).map(String);
+          if (ids.length === 0) return [];
+          // IGDB answers in its own order; keep the order of the similarity list.
+          const byId = new Map((await fetchByIds(ids)).map((game) => [game.externalId, game]));
+          return ids.map((id) => byId.get(id)).filter((game) => game !== undefined);
+        },
+      );
+      return sourced(entry.data, entry.fetchedAt, entry.fromCache);
+    },
+
+    async getTopByGenre(genre) {
+      const genres = await cache.remember(
+        'igdb',
+        'genres',
+        { ttlMs: GENRES_TTL_MS, version: CACHE_VERSION },
+        () => query('genres', 'fields name; limit 500;', igdbGenreListSchema),
+      );
+      const wanted = genre.trim().toLowerCase();
+      const match = genres.data.find((candidate) => candidate.name.toLowerCase() === wanted);
+      if (!match) return sourced([], now(), false);
+
+      const entry = await cache.remember(
+        'igdb',
+        `top-genre:${match.id}`,
+        { ttlMs: GAME_TTL_MS, version: CACHE_VERSION },
+        async () => {
+          // No editions (`version_parent`) and no DLC or bundles (`parent_game`).
+          const raw = await query(
+            'games',
+            `fields ${IGDB_GAME_FIELDS}; where genres = (${match.id}) & version_parent = null & parent_game = null & total_rating_count >= ${MIN_RATINGS}; sort total_rating desc; limit ${TOP_BY_GENRE_LIMIT};`,
+            igdbGameListSchema,
+          );
+          return raw.map(normalizeIgdbGame);
+        },
+      );
+      return sourced(entry.data, entry.fetchedAt, entry.fromCache);
     },
   };
 }
