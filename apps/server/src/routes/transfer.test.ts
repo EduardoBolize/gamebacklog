@@ -300,6 +300,33 @@ describe('import validation', () => {
     );
   });
 
+  it('imports a version 1 file, written before checkpoints had a boss', async () => {
+    const source = await newApp();
+    seedDatabase(source.ctx.db);
+    const current = await exportOf(source);
+    // What the same data looked like in format version 1.
+    const versionOne = {
+      ...current,
+      schemaVersion: 1,
+      data: {
+        ...current.data,
+        checkpoints: current.data.checkpoints.map(({ bossName: _bossName, ...row }) => row),
+      },
+    };
+
+    const target = await newApp();
+    const result = await call<ImportResultResponse>(target, 'POST', '/api/import', {
+      mode: 'replace',
+      file: versionOne,
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.fileSchemaVersion).toBe(1);
+    const restored = await exportOf(target);
+    expect(restored.schemaVersion).toBe(2);
+    expect(restored.data.checkpoints).toHaveLength(4);
+    expect(restored.data.checkpoints.every((row) => row.bossName === null)).toBe(true);
+  });
+
   it('upgrades files from older format versions step by step', () => {
     const migrated = migrateExport(
       { app: 'GameBacklog', schemaVersion: 1, data: { games: [{ name: 'Old' }] } },

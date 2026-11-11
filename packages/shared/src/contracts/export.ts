@@ -22,7 +22,7 @@ import { provenanceSchema } from '../provenance.ts';
 import { isoDateTimeSchema } from './common.ts';
 
 /**
- * Format of the JSON export, version 1.
+ * Format of the JSON export, version 2 (version 1 plus `checkpoints.bossName`).
  *
  * One array per table, rows exactly as stored, with instants as ISO strings. Objects are strict
  * on purpose: a column added to the database without updating this file fails the round-trip
@@ -104,6 +104,7 @@ export const exportTablesSchema = z.strictObject({
       name: text,
       aliases: strings,
       isPointOfNoReturn: z.boolean(),
+      bossName: optionalText,
       origin: contentOriginSchema,
       ...stamps,
     }),
@@ -309,7 +310,7 @@ export type ExportCacheName = keyof ExportCaches;
 
 export const exportFileSchema = z.strictObject({
   app: z.literal(APP_NAME),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   appVersion: z.string(),
   exportedAt: instant,
   data: exportTablesSchema,

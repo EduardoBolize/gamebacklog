@@ -1,0 +1,1 @@
+ALTER TABLE `checkpoints` ADD `boss_name` text;

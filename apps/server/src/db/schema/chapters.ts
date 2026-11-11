@@ -37,6 +37,8 @@ export const checkpoints = sqliteTable(
     /** Alternative names, used to match the user's free text locally before asking the AI. */
     aliases: stringArray('aliases'),
     isPointOfNoReturn: flag('is_point_of_no_return'),
+    /** Boss fought at this checkpoint, when there is one. Feeds the proactive "boss tips?" question. */
+    bossName: text('boss_name'),
     origin: text('origin', { enum: CONTENT_ORIGINS }).notNull(),
     ...timestamps(),
   },

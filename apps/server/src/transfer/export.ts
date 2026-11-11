@@ -56,11 +56,27 @@ export function buildExport(
 }
 
 /**
- * Upgrades from each older format to the next one. Version 1 is the first format, so the list
- * is empty; when version 2 arrives, add `1: (file) => ...` returning the version-2 shape.
+ * Upgrades from each older format to the next one: entry `n` turns a version-`n` file into a
+ * version-`n + 1` file. A file several versions behind goes through every step in order.
  */
 export type ExportMigration = (file: Record<string, unknown>) => Record<string, unknown>;
-export const EXPORT_MIGRATIONS: Record<number, ExportMigration> = {};
+
+type Rows = Record<string, unknown>[];
+const rowsOf = (file: Record<string, unknown>, table: string): Rows => {
+  const data = (file.data ?? {}) as Record<string, unknown>;
+  return Array.isArray(data[table]) ? (data[table] as Rows) : [];
+};
+
+export const EXPORT_MIGRATIONS: Record<number, ExportMigration> = {
+  // 1 → 2: checkpoints gained `bossName`.
+  1: (file) => ({
+    ...file,
+    data: {
+      ...(file.data as Record<string, unknown>),
+      checkpoints: rowsOf(file, 'checkpoints').map((row) => ({ bossName: null, ...row })),
+    },
+  }),
+};
 
 /** Brings a file of any known version up to the current format. */
 export function migrateExport(
