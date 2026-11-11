@@ -21,13 +21,15 @@ Princípios inegociáveis:
 
 ## Estado atual
 
-**Fases 0, 1 e 2 concluídas.** Além da biblioteca local completa, o app conecta a IA que o
+**Fases 0, 1, 2 e 3 concluídas.** Além da biblioteca local completa, o app conecta a IA que o
 usuário tiver (CLI com assinatura, chave de API ou modelo local) e, com ela, monta o mapa de
 capítulos, entende o "Onde estou?" em texto livre, dá dicas em quatro níveis sem spoiler e lista
-colecionáveis e perdíveis por área. Próxima: Fase 3 (recomendações).
+colecionáveis e perdíveis por área. As recomendações (perfil de gosto, "o que jogar agora",
+parecidos, gênero favorito) são calculadas localmente, sem IA. Próxima: Fase 4 (extras e
+polimento).
 
-Ainda não existe: recomendações, painel de estatísticas, RAWG e RetroAchievements (as chaves já
-podem ser guardadas, mas nada as usa), README e LICENSE.
+Ainda não existe: painel de estatísticas, alerta de risco de drop, RAWG e RetroAchievements (as
+chaves já podem ser guardadas, mas nada as usa), README e LICENSE.
 
 Em stand-by por decisão do usuário (não integrar sem ele pedir):
 
@@ -112,6 +114,23 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   grava com `confirmPointOfNoReturn`.
 - **Formato de export na versão 2** (`checkpoints.bossName`). Arquivos da versão 1 são convertidos
   em `EXPORT_MIGRATIONS`.
+- **Recomendações não guardam nada no banco**: tudo é recalculado a cada pedido a partir da
+  biblioteca (`recommendations/`). A Fase 3 não mudou o schema nem o formato de export.
+- **Perfil de gosto** (`recommendations/profile.ts`, funções puras): cada jogo com opinião vira um
+  peso de -1,5 a 1,5 a partir da nota (6 é neutro) e do status (zerado pesa mais, dropado pesa
+  contra, backlog e wishlist não contam). Cada gênero, tema, franquia, plataforma e mecânica
+  recebe a média desses pesos, puxada para zero enquanto há poucos jogos. Um jogo da biblioteca
+  nunca conta como evidência a favor de si mesmo (`excludeEntryId`).
+- **Toda recomendação carrega seus motivos** (`reasons`: característica + jogos que a
+  sustentam), calculados localmente. A IA só transforma esses motivos em uma linha por jogo,
+  num único pedido por lista, quando o usuário clica; a chave de cache inclui os motivos, então
+  a linha some quando o perfil muda.
+- **"Parecidos"** junta o `similar_games` da IGDB com a sobreposição de gêneros, temas e
+  mecânicas (`recommendations/similarity.ts`). **"Parecidos com esta platina"** compara o
+  formato da lista de conquistas (tamanho, mediana, raridade); fora da biblioteca só entram
+  jogos com conquistas na Steam, porque as porcentagens globais da Steam não exigem chave.
+- **IGDB fora do ar ou sem chave nunca quebra uma lista**: a resposta diz o que faltou
+  (`catalog`: `ok`, `not_configured`, `no_catalog_id`, `failed`) e mostra o que a biblioteca tem.
 
 ## Estrutura de pastas
 
@@ -127,7 +146,7 @@ apps/
       config.ts, paths.ts    host, porta, pasta de dados por SO, trava "fora do repositório"
       errors.ts              HttpError e o tradutor de erros para `{ error, message }`
       routes/                rotas HTTP por área (library, achievements, sources, transfer,
-                             ai, assist)
+                             ai, assist, recommendations)
       library/               biblioteca, jogatinas, tempos, diário, reviews, "onde estou"
       achievements/          sincronização da Steam, heurística de história, funil de abandono
       steam/                 prévia e importação da biblioteca, sincronização de horas
@@ -139,6 +158,8 @@ apps/
       settings/              registro tipado do que vai na tabela `settings`
       ai/                    provider.ts (contrato), cli.ts (execução sem shell), pipeline.ts,
                              service.ts (provedor ativo), providers/ (cli, api) e prompts/
+      recommendations/       profile.ts (perfil de gosto), similarity.ts (parecidos e formato
+                             das conquistas), service.ts (as listas e a explicação por IA)
       assist/                wiki do jogo, mapa de capítulos, "onde estou", dicas, checklist de
                              100%, resumo e estimativa de abandono
       db/                    client, migrate, seed, cli/, schema/
@@ -146,16 +167,20 @@ apps/
   web/
     src/
       App.tsx                rotas
-      api.ts, api-assist.ts  cliente HTTP + hooks do TanStack Query (biblioteca / IA)
+      api.ts, api-assist.ts, api-recommendations.ts
+                             cliente HTTP + hooks do TanStack Query (biblioteca / IA /
+                             recomendações)
       theme.tsx, index.css   tema claro/escuro e tokens
       i18n/                  pt-BR.ts, en.ts e o provider
       components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, AiSettings,
-                             Spoiler (spoiler shield), ui
+                             Spoiler (spoiler shield), Recommendations (lista, motivos e
+                             "Explicar com IA"), ui
       pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport, Settings,
-                             AiUsage
+                             AiUsage, Recommendations
 packages/
   shared/src/                enums, constantes, proveniência e contracts/
-e2e/                         testes Playwright e fake-llm.mjs (IA de mentira para os testes)
+e2e/                         testes Playwright (rodam sobre a biblioteca de exemplo do seed) e
+                             fake-llm.mjs (IA de mentira para os testes)
 docs/                        plano das fases e wireframes
 ```
 
@@ -207,6 +232,8 @@ O server também aplica as migrações pendentes sozinho ao iniciar.
   `classified_by = 'user'`, `is_user_edited`): nunca sobrescrever.
 - **Testes** ficam ao lado do código (`*.test.ts`). Testes de banco usam `:memory:` ou pasta
   temporária; nunca a pasta de dados real. Testes de rota usam `createTestApp()`.
+- **Seed** (`db/seed.ts`): biblioteca de exemplo com 27 jogos, 17 deles avaliados. Os testes
+  de ranqueamento e os testes Playwright dependem dela; ao mexer no seed, rode os dois.
 - **Testes de IA** usam a IA roteirizada de `createTestApp()` (`t.ai.answers`, `t.ai.requests`)
   e a wiki falsa (`t.sources.wikiPages`). Por padrão a IA vem desconectada: ligue com
   `t.ai.connected = true`.
