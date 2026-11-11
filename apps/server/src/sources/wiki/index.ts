@@ -33,6 +33,17 @@ export interface WikiPage {
   sections: WikiSection[];
 }
 
+/** An image file of a wiki. The app shows the thumbnail and links to the file's own page. */
+export interface WikiImage {
+  /** File name without the `File:` prefix and the extension. */
+  title: string;
+  thumbUrl: string;
+  /** The file's page on the wiki, with its full size, author and licence. */
+  pageUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface WikiSource {
   readonly id: 'wiki';
   /** Checks that `url` belongs to a MediaWiki site and returns how to talk to it. */
@@ -40,6 +51,10 @@ export interface WikiSource {
   /** Page titles matching the query, best first. */
   search(site: WikiSite, query: string, limit?: number): Promise<string[]>;
   getPage(site: WikiSite, title: string): Promise<Sourced<WikiPage> | null>;
+  /** Image files whose name or page matches the query, best first. */
+  searchImages(site: WikiSite, query: string, limit?: number): Promise<WikiImage[]>;
+  /** Image files used on a page, in no particular order. */
+  getPageImages(site: WikiSite, title: string): Promise<WikiImage[]>;
   healthCheck(): Promise<SourceHealth>;
 }
 
@@ -60,6 +75,59 @@ const parseSchema = z.object({
   parse: z.object({ title: z.string(), text: z.string() }).optional(),
   error: z.object({ code: z.string() }).optional(),
 });
+
+const imagePagesSchema = z.object({
+  query: z
+    .object({
+      pages: z.array(
+        z.object({
+          title: z.string(),
+          /** Rank in the search results, when the pages come from a search. */
+          index: z.number().optional(),
+          imageinfo: z
+            .array(
+              z.object({
+                url: z.string(),
+                thumburl: z.string().optional(),
+                descriptionurl: z.string().optional(),
+                width: z.number().optional(),
+                height: z.number().optional(),
+                mime: z.string().optional(),
+              }),
+            )
+            .optional(),
+        }),
+      ),
+    })
+    .optional(),
+});
+
+const THUMB_WIDTH = 480;
+const SHOWABLE_IMAGE = /^image\/(png|jpe?g|webp|gif)$/;
+const IMAGE_PROPS = {
+  prop: 'imageinfo',
+  iiprop: 'url|size|mime',
+  iiurlwidth: String(THUMB_WIDTH),
+};
+
+function toWikiImages(result: z.infer<typeof imagePagesSchema> | null): WikiImage[] {
+  return [...(result?.query?.pages ?? [])]
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .flatMap((page): WikiImage[] => {
+      const info = page.imageinfo?.[0];
+      // Files that do not exist on this wiki come back without `imageinfo`.
+      if (!info?.descriptionurl || !SHOWABLE_IMAGE.test(info.mime ?? '')) return [];
+      return [
+        {
+          title: page.title.replace(/^[^:]+:/, '').replace(/\.\w+$/, ''),
+          thumbUrl: info.thumburl ?? info.url,
+          pageUrl: info.descriptionurl,
+          width: info.width ?? 0,
+          height: info.height ?? 0,
+        },
+      ];
+    });
+}
 
 function articleBaseOf(general: z.infer<typeof siteInfoSchema>['query']['general']): string {
   if (general.server && general.articlepath?.includes('$1')) {
@@ -197,6 +265,56 @@ export function createWikiSource(options: { cache: SourceCache; fetch?: FetchLik
           fetchedAt: entry.fetchedAt.toISOString(),
         },
       };
+    },
+
+    async searchImages(site, query, limit = 8) {
+      const key = `images:${site.apiUrl}:${limit}:${query.trim().toLowerCase()}`;
+      const entry = await cache.remember(
+        'wiki',
+        key,
+        { ttlMs: PAGE_TTL_MS, version: CACHE_VERSION },
+        async () =>
+          toWikiImages(
+            await api(
+              site.apiUrl,
+              {
+                action: 'query',
+                generator: 'search',
+                gsrsearch: query,
+                // Namespace 6 is "File" on every MediaWiki site.
+                gsrnamespace: '6',
+                gsrlimit: String(limit),
+                ...IMAGE_PROPS,
+              },
+              imagePagesSchema,
+            ),
+          ),
+      );
+      return entry.data;
+    },
+
+    async getPageImages(site, title) {
+      const entry = await cache.remember(
+        'wiki',
+        `page-images:${site.apiUrl}:${title}`,
+        { ttlMs: PAGE_TTL_MS, version: CACHE_VERSION },
+        async () =>
+          toWikiImages(
+            await api(
+              site.apiUrl,
+              {
+                action: 'query',
+                titles: title,
+                redirects: '1',
+                generator: 'images',
+                gimlimit: '50',
+                ...IMAGE_PROPS,
+              },
+              imagePagesSchema,
+            ),
+          ),
+      );
+      return entry.data;
     },
 
     async healthCheck() {

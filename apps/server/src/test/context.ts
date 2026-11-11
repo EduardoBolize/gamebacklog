@@ -18,7 +18,7 @@ import type {
 } from '../sources/types.ts';
 import type { WebSearchResult, WebSearchSource } from '../sources/web-search/index.ts';
 import type { WikiSection } from '../sources/wiki/html.ts';
-import type { WikiSite, WikiSource } from '../sources/wiki/index.ts';
+import type { WikiImage, WikiSite, WikiSource } from '../sources/wiki/index.ts';
 import { createTestDatabase } from './helpers.ts';
 
 /** Catalog entry with sensible defaults, for building fake IGDB data. */
@@ -65,6 +65,10 @@ export interface FakeSources {
   wikiHosts: string[];
   /** Page title → sections. Search matches titles and text against the query words. */
   wikiPages: Record<string, WikiSection[]>;
+  /** Image files of the wiki. A search matches the query words against the file names. */
+  wikiImages: WikiImage[];
+  /** Page title → names of the image files used on it. */
+  wikiPageImages: Record<string, string[]>;
   /** Every wiki request made, as `probe:<host>`, `search:<query>` or `page:<title>`. */
   wikiCalls: string[];
   webSearchConfigured: boolean;
@@ -205,6 +209,23 @@ function fakeWiki(state: FakeSources): WikiSource {
       const url = site.articleBase + encodeURIComponent(title.replace(/ /g, '_'));
       return Promise.resolve(sourced('wiki', { title, url, sections }, url));
     },
+    searchImages(_site, query, limit = 8) {
+      state.wikiCalls.push(`images:${query}`);
+      const wanted = words(query);
+      const scored = state.wikiImages
+        .map((image) => {
+          const name = words(image.title);
+          return { image, score: wanted.filter((word) => name.includes(word)).length };
+        })
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score);
+      return Promise.resolve(scored.slice(0, limit).map((item) => item.image));
+    },
+    getPageImages(_site, title) {
+      state.wikiCalls.push(`page-images:${title}`);
+      const names = state.wikiPageImages[title] ?? [];
+      return Promise.resolve(state.wikiImages.filter((image) => names.includes(image.title)));
+    },
     healthCheck: () => Promise.resolve({ status: 'ok' as const, message: 'ok' }),
   };
 }
@@ -321,6 +342,8 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     playerAchievements: {},
     wikiHosts: [],
     wikiPages: {},
+    wikiImages: [],
+    wikiPageImages: {},
     wikiCalls: [],
     webSearchConfigured: false,
     webResults: [],

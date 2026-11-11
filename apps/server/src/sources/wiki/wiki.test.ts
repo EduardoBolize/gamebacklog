@@ -161,6 +161,75 @@ describe('wiki and web search sources', () => {
     expect(fetch.calls).toHaveLength(calls);
   });
 
+  it('finds image files by search and by page, as thumbnails that link to the wiki', async () => {
+    // Shaped like `generator=search` / `generator=images` with `prop=imageinfo` on Fandom.
+    const file = (title: string, index: number, mime = 'image/png') => ({
+      title: `File:${title}`,
+      index,
+      imageinfo: [
+        {
+          url: `https://static.example/${title}`,
+          thumburl: `https://static.example/${title}/480`,
+          descriptionurl: `https://zelda.fandom.com/wiki/File:${title}`,
+          width: 1792,
+          height: 657,
+          mime,
+        },
+      ],
+    });
+    const { source, fetch } = wiki(
+      siteInfo,
+      whenUrl('generator=search', {
+        json: {
+          query: {
+            pages: [
+              file('Second.png', 2),
+              file('Inside_the_Deku_Tree_Map.png', 1),
+              file('Theme.ogg', 3, 'application/ogg'),
+              // A file used on the wiki but hosted elsewhere has no image info.
+              { title: 'File:Missing.png', index: 4 },
+            ],
+          },
+        },
+      }),
+      whenUrl('generator=images', {
+        json: { query: { pages: [file('Boss.jpg', 0, 'image/jpeg')] } },
+      }),
+    );
+    const site = await source.probe('https://zelda.fandom.com');
+    if (!site) throw new Error('site not found');
+
+    const found = await source.searchImages(site, 'Inside the Deku Tree map', 6);
+    // In search-rank order, without sounds or files that do not exist here.
+    expect(found).toEqual([
+      {
+        title: 'Inside_the_Deku_Tree_Map',
+        thumbUrl: 'https://static.example/Inside_the_Deku_Tree_Map.png/480',
+        pageUrl: 'https://zelda.fandom.com/wiki/File:Inside_the_Deku_Tree_Map.png',
+        width: 1792,
+        height: 657,
+      },
+      expect.objectContaining({ title: 'Second' }),
+    ]);
+    const query = Object.fromEntries(new URL(fetch.calls.at(-1)?.url ?? '').searchParams);
+    expect(query).toMatchObject({
+      generator: 'search',
+      gsrsearch: 'Inside the Deku Tree map',
+      gsrnamespace: '6',
+      gsrlimit: '6',
+      prop: 'imageinfo',
+      iiurlwidth: '480',
+    });
+
+    const onPage = await source.getPageImages(site, 'Inside the Deku Tree');
+    expect(onPage.map((image) => image.title)).toEqual(['Boss']);
+
+    const calls = fetch.calls.length;
+    await source.searchImages(site, 'inside the deku tree MAP', 6);
+    await source.getPageImages(site, 'Inside the Deku Tree');
+    expect(fetch.calls).toHaveLength(calls);
+  });
+
   it('returns null for a page that does not exist and fails softly when the wiki is down', async () => {
     const missing = wiki(
       siteInfo,

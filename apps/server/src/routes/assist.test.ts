@@ -1,6 +1,8 @@
+import { areaMediaResponseSchema } from '@gamebacklog/shared';
 import type {
   AiUsageResponse,
   AreaChecklistResponse,
+  AreaMediaResponse,
   ChapterMapResponse,
   FunnelEstimateResponse,
   GameAssistResponse,
@@ -838,5 +840,111 @@ describe('web search settings', () => {
       hasTavilyKey: false,
     });
     expect((await call('PUT', '/api/search', { provider: 'nope' })).status).toBe(400);
+  });
+});
+
+describe('maps and videos of an area', () => {
+  const image = (title: string, width = 1200) => ({
+    title,
+    thumbUrl: `https://static.example/${encodeURIComponent(title)}/480`,
+    pageUrl: `https://zelda.fandom.com/wiki/File:${encodeURIComponent(title)}`,
+    width,
+    height: 600,
+  });
+
+  async function setUp() {
+    const { entryId, runId } = await addOcarina();
+    await call('PUT', `/api/library/${entryId}/map`, {
+      checkpoints: [
+        { name: 'Kokiri Forest', aliases: [], isPointOfNoReturn: false, bossName: null },
+        { name: 'Inside the Deku Tree', aliases: [], isPointOfNoReturn: false, bossName: null },
+      ],
+    });
+    await call('POST', `/api/playthroughs/${runId}/progress`, { rawText: 'inside the deku tree' });
+    return runId;
+  }
+
+  it('shows the maps the wiki has for the area and a ready-made video search', async () => {
+    const runId = await setUp();
+    t.sources.wikiImages = [
+      image('Inside the Deku Tree Map'),
+      image('Inside the Deku Tree'),
+      image('Inside the Deku Tree Icon', 64),
+      image('Deku Tree Boss Artwork'),
+      image('Hyrule World Map'),
+    ];
+    t.sources.wikiPageImages = { 'Inside the Deku Tree': ['Deku Tree Boss Artwork'] };
+
+    const { status, body } = await call<AreaMediaResponse>(
+      'GET',
+      `/api/playthroughs/${runId}/media`,
+    );
+    expect(status).toBe(200);
+    expect(areaMediaResponseSchema.parse(body)).toMatchObject({
+      checkpoint: 'Inside the Deku Tree',
+      mapsScope: 'area',
+      wiki: { origin: 'wiki', url: 'https://zelda.fandom.com/wiki/' },
+      videos: [],
+    });
+    // The map first, then the picture named after the place; no icons, artwork or other places.
+    expect(body.maps.map((map) => map.title)).toEqual([
+      'Inside the Deku Tree Map',
+      'Inside the Deku Tree',
+    ]);
+    expect(body.maps[0]?.pageUrl).toContain('zelda.fandom.com/wiki/File:');
+    const search = new URL(body.videoSearchUrl);
+    expect(search.host).toBe('www.youtube.com');
+    expect(search.searchParams.get('search_query')).toBe(
+      'The Legend of Zelda: Ocarina of Time Inside the Deku Tree detonado',
+    );
+    // No AI is involved, connected or not.
+    expect(t.ai.requests).toHaveLength(0);
+  });
+
+  it('falls back to a map of the whole game, and searches in the language asked for', async () => {
+    const runId = await setUp();
+    t.sources.wikiImages = [image('Ocarina of Time Overworld Map'), image('Ocarina of Time Logo')];
+
+    const { body } = await call<AreaMediaResponse>(
+      'GET',
+      `/api/playthroughs/${runId}/media?locale=en`,
+    );
+    expect(body.mapsScope).toBe('game');
+    expect(body.maps.map((map) => map.title)).toEqual(['Ocarina of Time Overworld Map']);
+    expect(new URL(body.videoSearchUrl).searchParams.get('search_query')).toContain('walkthrough');
+  });
+
+  it('lists videos found by the web search, YouTube only', async () => {
+    const runId = await setUp();
+    t.sources.webSearchConfigured = true;
+    t.sources.webResults = [
+      { title: 'Deku Tree walkthrough', url: 'https://www.youtube.com/watch?v=abc', snippet: '' },
+      { title: 'A channel', url: 'https://www.youtube.com/@someone', snippet: '' },
+      { title: 'Some blog', url: 'https://blog.example/deku', snippet: '' },
+      { title: 'Short link', url: 'https://youtu.be/xyz', snippet: '' },
+    ];
+    const { body } = await call<AreaMediaResponse>('GET', `/api/playthroughs/${runId}/media`);
+    expect(body.videos).toEqual([
+      { title: 'Deku Tree walkthrough', url: 'https://www.youtube.com/watch?v=abc' },
+      { title: 'Short link', url: 'https://youtu.be/xyz' },
+    ]);
+  });
+
+  it('answers without maps when the game has no wiki, and still offers the video search', async () => {
+    const added = await call<{ libraryEntryId: string }>('POST', '/api/library', {
+      status: 'playing',
+      game: { kind: 'manual', title: 'Jogo Sem Wiki' },
+    });
+    const entryId = added.body.libraryEntryId;
+    await call('PUT', `/api/library/${entryId}/wiki`, { wikiUrl: null });
+    const detail = (await call<GameDetailResponse>('GET', `/api/library/${entryId}`)).body;
+    const runId = detail.playthroughs[0]?.id ?? '';
+    const { status, body } = await call<AreaMediaResponse>(
+      'GET',
+      `/api/playthroughs/${runId}/media`,
+    );
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ checkpoint: null, mapsScope: null, maps: [], wiki: null });
+    expect(body.videoSearchUrl).toContain('Jogo+Sem+Wiki');
   });
 });

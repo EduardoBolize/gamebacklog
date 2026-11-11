@@ -720,6 +720,17 @@ export const en: Messages = {
       tag: 'Mechanics',
     },
   },
+  media: {
+    title: 'Maps and videos',
+    mapsOfArea: 'Maps of {name}',
+    mapsOfGame: 'Maps of the game',
+    noMaps: 'The wiki of this game has no map for this area.',
+    fromWiki: "Images from the game's wiki; click to see them full size at the source",
+    videos: 'Videos',
+    videoWarning: 'Video titles and thumbnails may contain spoilers.',
+    searchVideos: 'Search YouTube for videos of this part',
+    failed: 'Could not look up maps and videos right now.',
+  },
   errors: {
     ai_not_connected: 'Connect an AI in Settings › AI to use this feature.',
     ai_invalid_response: 'The AI answered in the wrong format twice. Try again or switch models.',

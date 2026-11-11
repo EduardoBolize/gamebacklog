@@ -720,6 +720,17 @@ export const ptBR = {
       tag: 'Mecânicas',
     },
   },
+  media: {
+    title: 'Mapas e vídeos',
+    mapsOfArea: 'Mapas de {name}',
+    mapsOfGame: 'Mapas do jogo',
+    noMaps: 'A wiki deste jogo não tem um mapa para esta área.',
+    fromWiki: 'Imagens da wiki do jogo; clique para ver em tamanho real na fonte',
+    videos: 'Vídeos',
+    videoWarning: 'Títulos e miniaturas de vídeos podem conter spoilers.',
+    searchVideos: 'Buscar vídeos desta parte no YouTube',
+    failed: 'Não foi possível buscar mapas e vídeos agora.',
+  },
   errors: {
     ai_not_connected: 'Conecte uma IA em Ajustes › IA para usar esta função.',
     ai_invalid_response:

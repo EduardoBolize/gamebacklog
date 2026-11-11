@@ -4,6 +4,7 @@ import {
   aiTestResponseSchema,
   aiUsageResponseSchema,
   areaChecklistResponseSchema,
+  areaMediaResponseSchema,
   chapterMapResponseSchema,
   funnelEstimateResponseSchema,
   gameAssistResponseSchema,
@@ -88,6 +89,13 @@ export const assistApi = {
       isCollected,
     }),
 
+  media: (runId: string, checkpointId: string | null, locale: Locale) =>
+    request(
+      'GET',
+      `/api/playthroughs/${runId}/media?${areaQuery(checkpointId, locale)}`,
+      areaMediaResponseSchema,
+    ),
+
   assist: (runId: string) =>
     request('GET', `/api/playthroughs/${runId}/assist`, gameAssistResponseSchema),
   estimateFunnel: (runId: string, locale: 'pt-BR' | 'en') =>
@@ -105,6 +113,8 @@ export const assistKeys = {
   checklist: (runId: string, checkpointId: string | null, locale: Locale) =>
     ['checklist', runId, checkpointId, locale] as const,
   assist: (runId: string) => ['assist', runId] as const,
+  media: (runId: string, checkpointId: string | null, locale: Locale) =>
+    ['media', runId, checkpointId, locale] as const,
 };
 
 export const useAi = () => useQuery({ queryKey: assistKeys.ai, queryFn: assistApi.ai });
@@ -129,6 +139,20 @@ export const useChecklist = (
     queryKey: assistKeys.checklist(runId, checkpointId, locale),
     queryFn: () => assistApi.checklist(runId, checkpointId, locale),
     enabled,
+    retry: false,
+  });
+export const useAreaMedia = (
+  runId: string,
+  checkpointId: string | null,
+  locale: Locale,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: assistKeys.media(runId, checkpointId, locale),
+    queryFn: () => assistApi.media(runId, checkpointId, locale),
+    enabled,
+    // Maps and videos of an area do not change while the page is open.
+    staleTime: 10 * 60_000,
     retry: false,
   });
 export const useAssist = (runId: string) =>

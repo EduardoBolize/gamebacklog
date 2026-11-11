@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { generateChapterMap, getChapterMap, saveCheckpoints } from '../assist/chapter-map.ts';
 import { generateAreaChecklist, getAreaChecklist, setCollected } from '../assist/checklist.ts';
+import { getAreaMedia } from '../assist/media.ts';
 import { listRevealedHints, requestHint } from '../assist/hints.ts';
 import { estimateFunnel, getAssist } from '../assist/overview.ts';
 import { reportProgress } from '../assist/progress.ts';
@@ -84,6 +85,11 @@ export function registerAssistRoutes(app: FastifyInstance, ctx: AppContext): voi
     setCollected(ctx, params.id, params.collectibleId, body.isCollected);
     return OK;
   });
+
+  // --- Maps and videos: links only, no AI ---
+  app.get('/api/playthroughs/:id/media', (request) =>
+    getAreaMedia(ctx, id(request.params), checklistQuery.parse(request.query)),
+  );
 
   // --- Proactive questions, recap and the estimated funnel ---
   app.get('/api/playthroughs/:id/assist', (request) => getAssist(ctx, id(request.params)));

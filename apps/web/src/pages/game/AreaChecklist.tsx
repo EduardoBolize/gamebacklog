@@ -4,6 +4,7 @@ import { ApiError, useApiMutation } from '../../api.ts';
 import { assistApi, useChecklist, useMap } from '../../api-assist.ts';
 import { ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { AreaMedia } from './AreaMedia.tsx';
 import { SourceList } from './ChapterMapSection.tsx';
 
 /**
@@ -133,6 +134,7 @@ export function AreaChecklist({ run }: { run: Playthrough }) {
       )}
       <SourceList sources={data.sources} label={t('checklist.sources')} />
       <ErrorNote error={generate.error ?? collect.error} />
+      <AreaMedia key={data.checkpoint.id} runId={run.id} checkpointId={data.checkpoint.id} />
     </section>
   );
 }

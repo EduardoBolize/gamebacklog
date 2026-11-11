@@ -6,6 +6,7 @@ import { assistApi, useHints } from '../../api-assist.ts';
 import { Spoiler } from '../../components/Spoiler.tsx';
 import { ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { AreaMedia } from './AreaMedia.tsx';
 import { SourceList } from './ChapterMapSection.tsx';
 
 const KINDS: [
@@ -121,13 +122,17 @@ export function HintsTab({ runId, initialKind }: { runId: string; initialKind: H
 
   if (!hints.data.aiConnected) {
     return (
-      <section className="grid max-w-prose justify-items-start gap-3">
-        <h2 className="section-title">{t('hintLadder.lockedTitle')}</h2>
-        <p>{t('hintLadder.locked')}</p>
-        <Link to="/settings#ai" className="btn btn-primary">
-          {t('hintLadder.connect')}
-        </Link>
-      </section>
+      <div className="grid gap-6">
+        <section className="grid max-w-prose justify-items-start gap-3">
+          <h2 className="section-title">{t('hintLadder.lockedTitle')}</h2>
+          <p>{t('hintLadder.locked')}</p>
+          <Link to="/settings#ai" className="btn btn-primary">
+            {t('hintLadder.connect')}
+          </Link>
+        </section>
+        {/* Maps and videos need no AI. */}
+        <AreaMedia runId={runId} checkpointId={null} />
+      </div>
     );
   }
 
@@ -207,6 +212,8 @@ export function HintsTab({ runId, initialKind }: { runId: string; initialKind: H
           </ul>
         </section>
       )}
+
+      <AreaMedia runId={runId} checkpointId={null} />
     </div>
   );
 }

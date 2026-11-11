@@ -298,6 +298,33 @@ export const gameAssistResponseSchema = z.object({
 });
 export type GameAssistResponse = z.infer<typeof gameAssistResponseSchema>;
 
+// --- Maps and videos of an area -----------------------------------------------------------
+
+export const areaMediaResponseSchema = z.object({
+  /** Name of the area the media is about; null when the game has no chapter map. */
+  checkpoint: z.string().nullable(),
+  /** Whether the maps are of that area or, failing that, of the game as a whole. */
+  mapsScope: z.enum(['area', 'game']).nullable(),
+  maps: z.array(
+    z.object({
+      title: z.string(),
+      /** Small version served by the wiki itself. */
+      thumbUrl: z.string(),
+      /** The file's page on the wiki, where the full map, its author and licence are. */
+      pageUrl: z.string(),
+      width: z.number(),
+      height: z.number(),
+    }),
+  ),
+  /** The wiki the maps come from. */
+  wiki: provenanceSchema.nullable(),
+  /** Videos found by the web search, when one is configured. */
+  videos: z.array(z.object({ title: z.string(), url: z.string() })),
+  /** A ready-made video search for this area. Always there; costs no request. */
+  videoSearchUrl: z.string(),
+});
+export type AreaMediaResponse = z.infer<typeof areaMediaResponseSchema>;
+
 export const funnelEstimateRequestSchema = z.object({
   locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
 });
