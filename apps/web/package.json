@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
     "@gamebacklog/shared": "workspace:*",
     "@tanstack/react-query": "^5.107.1",
     "react": "^19.3.1",

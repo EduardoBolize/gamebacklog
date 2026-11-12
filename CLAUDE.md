@@ -47,6 +47,13 @@ cinco telas, nos dois temas.
 
 O desenho das telas da Fase 1 está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
 
+**Nova tela da Biblioteca (layout no estilo Steam) em andamento:** a referência está em
+`docs/design/` (imagem e HTML da ferramenta de design). A tela já ocupa `/` e `/wishlist`
+(`apps/web/src/pages/library/`), mas **ainda lê só dados mockados** (`mock-library.ts`); a
+biblioteca real (`LibraryPage.tsx`) ficou sem rota até o mock ser trocado pela API. Por isso três
+testes de `e2e/library.spec.ts` (adicionar jogo, mudar status, exportar/importar) falham por
+enquanto. Recomendações e Estatísticas continuam nas telas antigas, dentro do `Shell`.
+
 ## Decisões travadas
 
 Não reabrir. Diante de um bloqueio real, parar e perguntar.
@@ -95,6 +102,13 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   Steam) nunca vêm do arquivo.
 - **i18n próprio** (`apps/web/src/i18n`), sem dependência: dicionários tipados, pt-BR como padrão e
   referência; `en.ts` só compila se tiver as mesmas chaves.
+- **Tela da Biblioteca** (`pages/library/`): paleta escura própria em `.theme-library`
+  (`index.css`), que redefine os tokens de sempre (`--bg`, `--surface`, `--accent`…) e soma os
+  dela (`topbar`, `sidebar`, `line-control`, `divider`, `soft`, `selected`, `status-*`); amarelo
+  como destaque e uma cor por status. Fontes Barlow Condensed e Inter vêm dos pacotes
+  `@fontsource/*` (só o subconjunto latino), empacotadas no build, sem acesso à internet. O
+  filtro de status fica na URL (`?status=`), e as abas "Jogando agora" e "Quero jogar" são esse
+  mesmo filtro. Abaixo de 768px a lateral vira gaveta sobreposta.
 - **Web sem biblioteca de componentes nem de ícones**: controles nativos (`<dialog>`, `<select>`,
   `<details>`), tokens em CSS variables (`index.css`) e uma única cor de destaque.
 - **Todo provedor de IA só precisa gerar texto** (`AiProviderCore.generate`). Saída estruturada é
@@ -255,7 +269,9 @@ apps/
       components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, AiSettings,
                              Spoiler (spoiler shield), Recommendations (lista, motivos e
                              "Explicar com IA"), ui
-      pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport (a tela
+      pages/library/         a tela da Biblioteca nova (TopBar, Sidebar, Continue jogando,
+                             grade/lista), filtros puros em filters.ts e o mock
+      pages/                 Library (antiga, sem rota), Game (+ game/ com as abas), Setup, SteamImport (a tela
                              de importação de Steam, PSN e Xbox), Settings, AiUsage,
                              Recommendations, Stats
 packages/

@@ -43,7 +43,52 @@
   }
 }
 
+/*
+ * The library screen (Steam-like layout): one dark palette, with yellow as the accent and a
+ * colour per status. Inside `.theme-library` the shared tokens above take these values, so the
+ * same utilities (`bg-bg`, `text-muted`, `border-line`…) work in both looks. The page root takes
+ * them too while the screen is open, so the area past the end of the page matches.
+ */
+:root:has(.theme-library),
+.theme-library {
+  --bg: #120d1c;
+  --surface: #211833;
+  --line: #33264a;
+  --text: #f3eefa;
+  --muted: #a99cc0;
+  --accent: #ffd23f;
+  --accent-text: #0c0814;
+  --topbar: #0c0814;
+  --sidebar: #1a1228;
+  --line-control: #3d2e57;
+  --divider: #2a1f3d;
+  --soft: #d6cde6;
+  --accent-hover: #ffe485;
+  --selected: #3b2a63;
+  --status-playing: #ffd23f;
+  --status-completed: #6fdc9a;
+  --status-platinum: #c4a6ff;
+  --status-backlog: #d6cde6;
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
 @theme inline {
+  --color-topbar: var(--topbar);
+  --color-sidebar: var(--sidebar);
+  --color-line-control: var(--line-control);
+  --color-divider: var(--divider);
+  --color-soft: var(--soft);
+  --color-accent-hover: var(--accent-hover);
+  --color-selected: var(--selected);
+  --color-status-playing: var(--status-playing);
+  --color-status-completed: var(--status-completed);
+  --color-status-platinum: var(--status-platinum);
+  --color-status-backlog: var(--status-backlog);
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-ui: Inter, system-ui, sans-serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-line: var(--line);

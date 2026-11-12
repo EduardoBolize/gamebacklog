@@ -4,7 +4,7 @@ import { Shell } from './components/Shell.tsx';
 import { I18nProvider, useI18n } from './i18n/index.tsx';
 import { AiUsagePage } from './pages/AiUsagePage.tsx';
 import { GamePage } from './pages/GamePage.tsx';
-import { LibraryPage } from './pages/LibraryPage.tsx';
+import { LibraryScreen } from './pages/library/LibraryScreen.tsx';
 import { RecommendationsPage } from './pages/RecommendationsPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
@@ -38,8 +38,10 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <Routes>
+              {/* The library screen has its own top bar and sidebar (mock data for now). */}
+              <Route index element={<LibraryScreen />} />
+              <Route path="wishlist" element={<LibraryScreen />} />
               <Route element={<Shell />}>
-                <Route index element={<LibraryPage />} />
                 <Route path="games/:entryId" element={<GamePage />} />
                 <Route path="recommendations" element={<RecommendationsPage />} />
                 <Route path="stats" element={<StatsPage />} />
