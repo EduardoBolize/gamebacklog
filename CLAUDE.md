@@ -47,12 +47,10 @@ cinco telas, nos dois temas.
 
 O desenho das telas da Fase 1 está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
 
-**Nova tela da Biblioteca (layout no estilo Steam) em andamento:** a referência está em
-`docs/design/` (imagem e HTML da ferramenta de design). A tela já ocupa `/` e `/wishlist`
-(`apps/web/src/pages/library/`), mas **ainda lê só dados mockados** (`mock-library.ts`); a
-biblioteca real (`LibraryPage.tsx`) ficou sem rota até o mock ser trocado pela API. Por isso três
-testes de `e2e/library.spec.ts` (adicionar jogo, mudar status, exportar/importar) falham por
-enquanto. Recomendações e Estatísticas continuam nas telas antigas, dentro do `Shell`.
+**Visual no estilo Steam em todo o app** (aprovado pelo usuário): a referência está em
+`docs/design/` (imagem e HTML da ferramenta de design). A biblioteca (`/`) lê os dados reais, com
+lateral de filtros e lista de jogos, "Continue jogando" e grade de capas clicáveis; a página do
+jogo, Recomendações, Estatísticas e as demais telas usam a mesma barra do topo e a mesma paleta.
 
 ## Decisões travadas
 
@@ -102,15 +100,24 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   Steam) nunca vêm do arquivo.
 - **i18n próprio** (`apps/web/src/i18n`), sem dependência: dicionários tipados, pt-BR como padrão e
   referência; `en.ts` só compila se tiver as mesmas chaves.
-- **Tela da Biblioteca** (`pages/library/`): paleta escura própria em `.theme-library`
-  (`index.css`), que redefine os tokens de sempre (`--bg`, `--surface`, `--accent`…) e soma os
-  dela (`topbar`, `sidebar`, `line-control`, `divider`, `soft`, `selected`, `status-*`); amarelo
-  como destaque e uma cor por status. Fontes Barlow Condensed e Inter vêm dos pacotes
-  `@fontsource/*` (só o subconjunto latino), empacotadas no build, sem acesso à internet. O
-  filtro de status fica na URL (`?status=`), e as abas "Jogando agora" e "Quero jogar" são esse
-  mesmo filtro. Abaixo de 768px a lateral vira gaveta sobreposta.
+- **Visual único, escuro** (`index.css`): sem tema claro. Tokens em CSS variables expostos ao
+  Tailwind (`bg`, `surface`, `line`, `text`, `muted`, `accent`, `topbar`, `sidebar`,
+  `line-control`, `divider`, `soft`, `selected`, `status-*`); amarelo como destaque e uma cor por
+  status. Títulos `h1`/`h2` em Barlow Condensed maiúsculo, o resto em Inter; as duas vêm dos
+  pacotes `@fontsource/*` (só o subconjunto latino), empacotadas no build, sem acesso à internet.
+- **Casca** (`components/Shell.tsx` + `TopBar.tsx`): abas Biblioteca, Jogando agora, Quero jogar,
+  Wishlist (as três são `/?status=…`), Recomendações e Estatísticas; "Adicionar jogo" abre o
+  diálogo no status que está na tela; sincronização da Steam com a hora da última; Ajustes. O
+  botão de menu só aparece na biblioteca e controla a lateral, que abaixo de 768px vira gaveta.
+- **Tela da Biblioteca** (`pages/library/`): todos os filtros vivem na URL (`q`, `status`,
+  `platform` e `genre` repetíveis, `sort`, `hide`, `ach`, `fav`, `view`), então voltar de um jogo
+  mantém o que estava filtrado. Plataformas são texto livre e a lateral as agrupa em famílias
+  (`platformFamily`). Capa e nome abrem o jogo; "Dicas sem spoiler" abre `?tab=hints` e "Guia
+  100% / platina" abre `?tab=achievements`. A lista da biblioteca (`GET /api/library`) traz
+  `playedMinutes`, `lastPlayedAt`, `progressPercent` (horas contra o tempo do objetivo, 100 ao
+  zerar), `achievementCount` e `accounts` (Steam, PSN…), calculados no server a cada pedido.
 - **Web sem biblioteca de componentes nem de ícones**: controles nativos (`<dialog>`, `<select>`,
-  `<details>`), tokens em CSS variables (`index.css`) e uma única cor de destaque.
+  `<details>`), ícones SVG próprios em `components/icons.tsx`.
 - **Todo provedor de IA só precisa gerar texto** (`AiProviderCore.generate`). Saída estruturada é
   igual para todos: o prompt pede JSON, a resposta é extraída e validada com Zod
   (`defineProvider` em `ai/provider.ts`). Nenhum recurso depende de um provedor específico.
@@ -264,14 +271,14 @@ apps/
       api.ts, api-assist.ts, api-recommendations.ts
                              cliente HTTP + hooks do TanStack Query (biblioteca / IA /
                              recomendações)
-      theme.tsx, index.css   tema claro/escuro e tokens
+      index.css              tokens do visual escuro e classes base (btn, field, panel…)
       i18n/                  pt-BR.ts, en.ts e o provider
-      components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, AiSettings,
+      components/            Shell e TopBar (casca e barra do topo), icons, AddGameDialog, SourceForms, AiSettings,
                              Spoiler (spoiler shield), Recommendations (lista, motivos e
                              "Explicar com IA"), ui
-      pages/library/         a tela da Biblioteca nova (TopBar, Sidebar, Continue jogando,
-                             grade/lista), filtros puros em filters.ts e o mock
-      pages/                 Library (antiga, sem rota), Game (+ game/ com as abas), Setup, SteamImport (a tela
+      pages/library/         a Biblioteca: Sidebar, Continue jogando, grade/lista, filtros
+                             puros e a URL em filters.ts
+      pages/                 Game (+ game/ com as abas), Setup, SteamImport (a tela
                              de importação de Steam, PSN e Xbox), Settings, AiUsage,
                              Recommendations, Stats
 packages/

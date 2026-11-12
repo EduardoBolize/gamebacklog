@@ -15,9 +15,9 @@ const useStats = () =>
 /** A headline number. Not a chart: one value, said plainly. */
 function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="grid content-start gap-1 rounded-base border border-line p-4">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
+    <div className="panel grid content-start gap-1 p-4 sm:p-5">
+      <dt className="eyebrow">{label}</dt>
+      <dd className="font-display text-4xl font-bold tabular-nums text-accent">{value}</dd>
       {note && <dd className="note">{note}</dd>}
     </div>
   );
@@ -44,7 +44,7 @@ function BarList({ bars, max }: { bars: Bar[]; max?: number }) {
         <li
           key={bar.key}
           title={`${bar.name}: ${bar.text}`}
-          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_6rem]"
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_9rem]"
         >
           <span className="truncate text-sm">{bar.label}</span>
           <span className="text-sm tabular-nums text-muted sm:order-3 sm:text-right">
@@ -52,7 +52,7 @@ function BarList({ bars, max }: { bars: Bar[]; max?: number }) {
           </span>
           <span
             aria-hidden="true"
-            className="col-span-2 block h-2 rounded-full bg-surface sm:order-2 sm:col-span-1"
+            className="col-span-2 block h-2 rounded-full bg-bg sm:order-2 sm:col-span-1"
           >
             <span
               className="block h-full rounded-full bg-accent"
@@ -102,7 +102,7 @@ function Columns({
 
 function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="grid content-start gap-3">
+    <section className="panel grid content-start gap-3 p-4 sm:p-5">
       <h2 className="section-title">{title}</h2>
       {note && <p className="note max-w-prose">{note}</p>}
       {children}
@@ -153,7 +153,7 @@ function StatsView({ stats }: { stats: StatsResponse }) {
   });
 
   return (
-    <div className="grid gap-10">
+    <div className="grid gap-6">
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
           label={t('stats.totalHours')}
@@ -189,7 +189,7 @@ function StatsView({ stats }: { stats: StatsResponse }) {
         />
       </dl>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Section title={t('stats.byPlatform')}>
           {stats.byPlatform.length > 0 ? (
             <BarList bars={sliceBars(stats.byPlatform)} />
@@ -212,7 +212,10 @@ function StatsView({ stats }: { stats: StatsResponse }) {
             bars={stats.byGame.map((game) => ({
               key: game.libraryEntryId,
               label: (
-                <Link to={`/games/${game.libraryEntryId}`} className="link">
+                <Link
+                  to={`/games/${game.libraryEntryId}`}
+                  className="font-semibold hover:text-accent hover:underline"
+                >
                   {game.title}
                 </Link>
               ),
@@ -226,7 +229,7 @@ function StatsView({ stats }: { stats: StatsResponse }) {
         )}
       </Section>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Section title={t('stats.completedByYear')}>
           {stats.completedByYear.length > 0 ? (
             <BarList
@@ -312,7 +315,7 @@ export function StatsPage() {
   const stats = useStats();
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl">{t('stats.title')}</h1>
+      <h1 className="text-[2rem]">{t('stats.title')}</h1>
       {stats.isPending ? (
         <Loading />
       ) : stats.isError ? (

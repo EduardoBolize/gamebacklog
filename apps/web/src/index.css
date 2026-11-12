@@ -1,56 +1,11 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens. Everything is a shade of warm grey except one accent colour, which is reserved
- * for the primary action, the selected item, keyboard focus and "you are here" markers.
- * Game covers are the only imagery; surfaces are flat, with 1px lines and no shadows.
+ * Design tokens: one dark palette (the Steam-like layout). Yellow is the accent, reserved for
+ * the primary action, the selected item, keyboard focus and "you are here" markers; each
+ * library status has its own colour. Game covers are the only imagery.
  */
 :root {
-  --bg: #fbfaf8;
-  --surface: #f2f0eb;
-  --line: #d9d5cc;
-  --text: #1c1b19;
-  --muted: #66635b;
-  --accent: #a8431a;
-  --accent-text: #ffffff;
-  --danger: #a12626;
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-  --bg: #131312;
-  --surface: #1d1d1b;
-  --line: #34332f;
-  --text: #ecebe7;
-  --muted: #a09d94;
-  --accent: #ec8a58;
-  --accent-text: #1c0e05;
-  --danger: #f08a8a;
-  color-scheme: dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #131312;
-    --surface: #1d1d1b;
-    --line: #34332f;
-    --text: #ecebe7;
-    --muted: #a09d94;
-    --accent: #ec8a58;
-    --accent-text: #1c0e05;
-    --danger: #f08a8a;
-    color-scheme: dark;
-  }
-}
-
-/*
- * The library screen (Steam-like layout): one dark palette, with yellow as the accent and a
- * colour per status. Inside `.theme-library` the shared tokens above take these values, so the
- * same utilities (`bg-bg`, `text-muted`, `border-line`…) work in both looks. The page root takes
- * them too while the screen is open, so the area past the end of the page matches.
- */
-:root:has(.theme-library),
-.theme-library {
   --bg: #120d1c;
   --surface: #211833;
   --line: #33264a;
@@ -58,6 +13,7 @@
   --muted: #a99cc0;
   --accent: #ffd23f;
   --accent-text: #0c0814;
+  --danger: #ff8f8f;
   --topbar: #0c0814;
   --sidebar: #1a1228;
   --line-control: #3d2e57;
@@ -69,13 +25,21 @@
   --status-completed: #6fdc9a;
   --status-platinum: #c4a6ff;
   --status-backlog: #d6cde6;
+  --status-paused: #8fc8ff;
+  --status-dropped: #ff8f8f;
+  --status-wishlist: #ffb37a;
   color-scheme: dark;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-ui);
 }
 
 @theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
   --color-topbar: var(--topbar);
   --color-sidebar: var(--sidebar);
   --color-line-control: var(--line-control);
@@ -87,18 +51,12 @@
   --color-status-completed: var(--status-completed);
   --color-status-platinum: var(--status-platinum);
   --color-status-backlog: var(--status-backlog);
+  --color-status-paused: var(--status-paused);
+  --color-status-dropped: var(--status-dropped);
+  --color-status-wishlist: var(--status-wishlist);
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-ui: Inter, system-ui, sans-serif;
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-line: var(--line);
-  --color-text: var(--text);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-text: var(--accent-text);
-  --color-danger: var(--danger);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --radius-base: 4px;
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --radius-base: 6px;
 }
 
 @layer base {
@@ -106,6 +64,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
+    font-size: 100%;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -119,11 +78,18 @@
     outline-offset: 2px;
   }
 
+  /* Headings speak in the condensed display face, like the library screen. */
   h1,
-  h2,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
   h3 {
     font-weight: 600;
-    letter-spacing: -0.01em;
   }
 
   dialog {
@@ -141,21 +107,21 @@
 
 @layer components {
   .btn {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-base border border-line bg-bg px-4 text-sm font-medium text-text sm:min-h-9;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-base border border-line-control bg-transparent px-4 text-sm font-semibold text-text sm:min-h-9;
   }
   .btn:hover:not(:disabled) {
-    border-color: var(--text);
+    border-color: var(--soft);
   }
   .btn:disabled {
     cursor: not-allowed;
     opacity: 0.55;
   }
   .btn-primary {
-    @apply border-accent bg-accent text-accent-text;
+    @apply border-accent bg-accent font-bold text-accent-text;
   }
   .btn-primary:hover:not(:disabled) {
-    border-color: var(--accent);
-    filter: brightness(1.08);
+    border-color: var(--accent-hover);
+    background: var(--accent-hover);
   }
   .btn-quiet {
     /* Text-style button. Tall enough to tap on a phone; compact with a mouse. */
@@ -165,7 +131,10 @@
     color: var(--text);
   }
   .field {
-    @apply min-h-11 w-full rounded-base border border-line bg-bg px-3 text-base text-text sm:min-h-9 sm:text-sm;
+    @apply min-h-11 w-full rounded-lg border border-line-control bg-bg px-3 text-base text-text sm:min-h-9 sm:text-sm;
+  }
+  .field:focus {
+    border-color: var(--accent);
   }
   .field::placeholder {
     color: var(--muted);
@@ -183,13 +152,21 @@
     text-decoration-color: var(--accent);
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-base border border-line px-2 py-0.5 text-sm;
+    @apply inline-flex items-center gap-1 rounded-full border border-line-control bg-surface px-2.5 py-0.5 text-sm;
   }
   .note {
     @apply text-sm text-muted;
   }
   .section-title {
-    @apply text-base font-semibold;
+    @apply font-display text-xl font-bold uppercase tracking-[0.04em];
+  }
+  /* Small uppercase label above a group of controls. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-muted;
+  }
+  /* A raised block: cards, tiles, boxed sections. */
+  .panel {
+    @apply rounded-[10px] border border-line bg-surface;
   }
   /*
    * A card of the library grid. With hundreds of games, the browser lays out and paints only

@@ -38,13 +38,13 @@ function PlayNextTab() {
       <ExplainBar request={{ list: 'play_next' }} disabled={!profileReady} />
 
       {backlog.length > 0 && (
-        <section className="grid gap-1">
+        <section className="grid gap-3">
           <h2 className="section-title">{t('recs.fromBacklog')}</h2>
           <RecommendationList items={backlog} />
         </section>
       )}
       {resume.length > 0 && (
-        <section className="grid gap-1">
+        <section className="grid gap-3">
           <h2 className="section-title">{t('recs.worthResuming')}</h2>
           <p className="note max-w-prose">{t('recs.worthResumingIntro')}</p>
           <RecommendationList items={resume} />
@@ -92,7 +92,7 @@ function GenreTab() {
         />
       </div>
 
-      <section className="grid gap-1">
+      <section className="grid gap-3">
         <h2 className="section-title">{t('recs.inLibrary')}</h2>
         {inLibrary.length > 0 ? (
           <RecommendationList items={inLibrary} />
@@ -101,7 +101,7 @@ function GenreTab() {
         )}
       </section>
 
-      <section className="grid gap-1">
+      <section className="grid gap-3">
         <h2 className="section-title">{t('recs.discover')}</h2>
         <CatalogNote reach={catalog} />
         {discover.length > 0 ? (
@@ -121,7 +121,7 @@ function TasteProfile({ profile }: { profile: TasteProfileResponse }) {
   ).filter((item) => item !== undefined && item.liked.length + item.disliked.length > 0);
 
   return (
-    <details className="border-t border-line pt-4">
+    <details className="panel px-4 py-3">
       <summary className="text-sm text-muted">{t('recs.profileTitle')}</summary>
       <div className="mt-3 grid gap-4">
         <p className="note max-w-prose">
@@ -164,13 +164,13 @@ export function RecommendationsPage() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl">{t('recs.title')}</h1>
+      <h1 className="text-[2rem]">{t('recs.title')}</h1>
 
       <nav
         aria-label={t('recs.tabs')}
-        className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-line px-4"
+        className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-line px-4 [scrollbar-width:none] md:mx-0 md:px-0"
       >
-        <ul className="flex gap-6 whitespace-nowrap">
+        <ul className="flex gap-0.5 whitespace-nowrap">
           {TABS.map((option) => (
             <li key={option}>
               <button
@@ -179,9 +179,9 @@ export function RecommendationsPage() {
                 onClick={() =>
                   setParams(option === 'play-next' ? {} : { tab: option }, { replace: true })
                 }
-                className={`-mb-px min-h-11 cursor-pointer border-b-2 text-sm ${
+                className={`-mb-px min-h-11 cursor-pointer border-b-[3px] px-3 pb-2.5 pt-2 font-display text-base font-semibold uppercase tracking-[0.06em] ${
                   tab === option
-                    ? 'border-accent font-semibold'
+                    ? 'border-accent text-text'
                     : 'border-transparent text-muted hover:text-text'
                 }`}
               >

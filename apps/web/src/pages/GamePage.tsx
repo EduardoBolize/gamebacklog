@@ -14,6 +14,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { ApiError, api, useApiMutation, useGame } from '../api.ts';
 import { ChipInput, Cover, ErrorNote, Loading, Modal } from '../components/ui.tsx';
 import { useI18n } from '../i18n/index.tsx';
+import { StatusBadge } from './library/parts.tsx';
 import {
   ACHIEVEMENT_FILTERS,
   AchievementsTab,
@@ -176,14 +177,28 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
         ← {t('app.backToLibrary')}
       </Link>
 
-      <header className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-6">
+      <header className="relative isolate grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 overflow-hidden rounded-[14px] border border-line bg-surface p-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-6 sm:p-6">
+        {/* Steam-like banner: the cover, blurred, behind the header. */}
+        {game.coverUrl && (
+          <img
+            src={game.coverUrl}
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            className="absolute inset-0 -z-20 h-full w-full scale-125 object-cover opacity-40 blur-2xl"
+          />
+        )}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-bg/95 via-bg/80 to-bg/55" />
         <div className="sm:row-span-2">
           <Cover title={game.title} url={game.coverUrl} />
         </div>
 
         <div className="grid content-start gap-1">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-            <h1 className="text-2xl leading-tight sm:text-3xl">{game.title}</h1>
+            <div className="grid justify-items-start gap-2">
+              <StatusBadge status={entry.status} />
+              <h1 className="text-3xl leading-none sm:text-[2.5rem]">{game.title}</h1>
+            </div>
             <button
               type="button"
               className="btn-quiet"
@@ -311,18 +326,18 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
       <div className="grid gap-5">
         <nav
           aria-label={t('game.tabs')}
-          className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-line px-4"
+          className="-mx-4 overflow-x-auto overflow-y-hidden border-b border-line px-4 [scrollbar-width:none] md:mx-0 md:px-0"
         >
-          <ul className="flex gap-6 whitespace-nowrap">
+          <ul className="flex gap-0.5 whitespace-nowrap">
             {TABS.map((option) => (
               <li key={option}>
                 <button
                   type="button"
                   aria-current={tab === option ? 'page' : undefined}
                   onClick={() => setParam('tab', option === 'progress' ? '' : option)}
-                  className={`-mb-px min-h-11 cursor-pointer border-b-2 text-sm ${
+                  className={`-mb-px min-h-11 cursor-pointer border-b-[3px] px-3 pb-2.5 pt-2 font-display text-base font-semibold uppercase tracking-[0.06em] ${
                     tab === option
-                      ? 'border-accent font-semibold'
+                      ? 'border-accent text-text'
                       : 'border-transparent text-muted hover:text-text'
                   }`}
                 >

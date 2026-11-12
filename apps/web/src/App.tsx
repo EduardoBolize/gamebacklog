@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Link, Route, Routes } from 'react-router';
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router';
 import { Shell } from './components/Shell.tsx';
 import { I18nProvider, useI18n } from './i18n/index.tsx';
 import { AiUsagePage } from './pages/AiUsagePage.tsx';
@@ -10,7 +10,6 @@ import { SettingsPage } from './pages/SettingsPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
 import { StatsPage } from './pages/StatsPage.tsx';
 import { ImportPage } from './pages/SteamImportPage.tsx';
-import { ThemeProvider } from './theme.tsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,30 +32,27 @@ function NotFoundPage() {
 
 export function App() {
   return (
-    <ThemeProvider>
-      <I18nProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <Routes>
-              {/* The library screen has its own top bar and sidebar (mock data for now). */}
+    <I18nProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Shell />}>
               <Route index element={<LibraryScreen />} />
-              <Route path="wishlist" element={<LibraryScreen />} />
-              <Route element={<Shell />}>
-                <Route path="games/:entryId" element={<GamePage />} />
-                <Route path="recommendations" element={<RecommendationsPage />} />
-                <Route path="stats" element={<StatsPage />} />
-                <Route path="setup" element={<SetupPage />} />
-                <Route path="import/steam" element={<ImportPage key="steam" source="steam" />} />
-                <Route path="import/psn" element={<ImportPage key="psn" source="psn" />} />
-                <Route path="import/xbox" element={<ImportPage key="xbox" source="xbox" />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="ai/usage" element={<AiUsagePage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </I18nProvider>
-    </ThemeProvider>
+              <Route path="wishlist" element={<Navigate to="/?status=wishlist" replace />} />
+              <Route path="games/:entryId" element={<GamePage />} />
+              <Route path="recommendations" element={<RecommendationsPage />} />
+              <Route path="stats" element={<StatsPage />} />
+              <Route path="setup" element={<SetupPage />} />
+              <Route path="import/steam" element={<ImportPage key="steam" source="steam" />} />
+              <Route path="import/psn" element={<ImportPage key="psn" source="psn" />} />
+              <Route path="import/xbox" element={<ImportPage key="xbox" source="xbox" />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="ai/usage" element={<AiUsagePage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </I18nProvider>
   );
 }

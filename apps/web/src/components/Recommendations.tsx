@@ -90,13 +90,23 @@ function Item({ item }: { item: RecommendedGame }) {
   ].filter(Boolean);
 
   return (
-    <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 border-b border-line py-4 last:border-b-0 sm:grid-cols-[5.5rem_minmax(0,1fr)]">
-      <Cover title={item.title} url={item.coverUrl} />
+    <li className="panel grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 p-4 sm:grid-cols-[6.5rem_minmax(0,1fr)]">
+      {/* A game already in the library opens its screen from the cover and the name. */}
+      {item.libraryEntryId ? (
+        <Link to={`/games/${item.libraryEntryId}`} tabIndex={-1} aria-hidden="true">
+          <Cover title={item.title} url={item.coverUrl} />
+        </Link>
+      ) : (
+        <Cover title={item.title} url={item.coverUrl} />
+      )}
       <div className="grid content-start gap-1.5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <h3 className="text-base">
+          <h3 className="font-display text-xl font-bold uppercase leading-tight tracking-[0.03em]">
             {item.libraryEntryId ? (
-              <Link to={`/games/${item.libraryEntryId}`} className="link">
+              <Link
+                to={`/games/${item.libraryEntryId}`}
+                className="hover:text-accent hover:underline"
+              >
                 {item.title}
               </Link>
             ) : (
@@ -104,7 +114,9 @@ function Item({ item }: { item: RecommendedGame }) {
             )}
           </h3>
           {numbers.length > 0 && (
-            <span className="text-sm tabular-nums text-muted">{numbers.join(' · ')}</span>
+            <span className="rounded-full bg-selected px-2.5 py-0.5 text-xs font-semibold tabular-nums text-soft">
+              {numbers.join(' · ')}
+            </span>
           )}
         </div>
         <p className="note">
@@ -144,7 +156,7 @@ function Item({ item }: { item: RecommendedGame }) {
 
 export function RecommendationList({ items }: { items: RecommendedGame[] }) {
   return (
-    <ul>
+    <ul className="grid gap-3">
       {items.map((item) => (
         <Item key={item.key} item={item} />
       ))}

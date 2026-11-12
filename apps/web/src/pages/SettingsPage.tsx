@@ -7,7 +7,6 @@ import { AiSection } from '../components/AiSettings.tsx';
 import { SourceRow } from '../components/SourceForms.tsx';
 import { ErrorNote, Loading } from '../components/ui.tsx';
 import { LOCALES, LOCALE_NAMES, useI18n } from '../i18n/index.tsx';
-import { THEME_CHOICES, useTheme } from '../theme.tsx';
 
 function SourcesSection() {
   const { t, tn } = useI18n();
@@ -401,35 +400,11 @@ function DataSection() {
 
 function AppearanceSection() {
   const { t, locale, setLocale } = useI18n();
-  const theme = useTheme();
-  const themeLabel = {
-    system: 'settings.themeSystem',
-    light: 'settings.themeLight',
-    dark: 'settings.themeDark',
-  } as const;
-
   return (
     <section id="appearance" aria-labelledby="appearance-title" className="grid scroll-mt-20 gap-4">
       <h2 id="appearance-title" className="text-xl">
         {t('settings.appearance')}
       </h2>
-      <fieldset>
-        <legend className="label">{t('settings.theme')}</legend>
-        <div className="flex flex-wrap gap-x-5">
-          {THEME_CHOICES.map((choice) => (
-            <label key={choice} className="flex min-h-11 items-center gap-2 text-sm sm:min-h-9">
-              <input
-                type="radio"
-                name="theme"
-                className="accent-accent"
-                checked={theme.choice === choice}
-                onChange={() => theme.setChoice(choice)}
-              />
-              {t(themeLabel[choice])}
-            </label>
-          ))}
-        </div>
-      </fieldset>
       <fieldset>
         <legend className="label">{t('settings.language')}</legend>
         <div className="flex flex-wrap gap-x-5">

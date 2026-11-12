@@ -1,16 +1,18 @@
+import { LIBRARY_STATUSES, type LibraryItem, type LibraryStatus } from '@gamebacklog/shared';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
+import { api, useApiMutation } from '../../api.ts';
+import { CloseIcon, GridIcon, ListIcon, MoreIcon, StarIcon } from '../../components/icons.tsx';
+import { ErrorNote } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import type { Filters } from './filters.ts';
-import { CloseIcon, GridIcon, ListIcon } from './icons.tsx';
-import type { Game } from './mock-library.ts';
 import {
-  GameCover,
   HEADING,
-  hoursText,
-  LABEL,
   PlatformBadge,
+  PortraitCover,
   ProgressBar,
   StatusBadge,
+  timeText,
 } from './parts.tsx';
 
 export type View = 'grid' | 'list';
@@ -32,33 +34,27 @@ function useActiveChips(filters: Filters): Chip[] {
       remove: { query: '' },
     });
   }
-  for (const platform of filters.platforms) {
+  for (const family of filters.families) {
     chips.push({
-      key: `platform-${platform}`,
-      label: t(`libraryScreen.platforms.${platform}`),
-      remove: { platforms: filters.platforms.filter((value) => value !== platform) },
+      key: `platform-${family}`,
+      label: t(`libraryScreen.families.${family}`),
+      remove: { families: filters.families.filter((value) => value !== family) },
     });
   }
   for (const genre of filters.genres) {
     chips.push({
       key: `genre-${genre}`,
-      label: t(`libraryScreen.genres.${genre}`),
+      label: genre,
       remove: { genres: filters.genres.filter((value) => value !== genre) },
     });
   }
-  if (filters.hideNeverOpened) {
-    chips.push({
-      key: 'never-opened',
-      label: t('libraryScreen.chipHideNeverOpened'),
-      remove: { hideNeverOpened: false },
-    });
-  }
-  if (filters.onlyAchievements) {
-    chips.push({
-      key: 'achievements',
-      label: t('libraryScreen.chipOnlyAchievements'),
-      remove: { onlyAchievements: false },
-    });
+  const toggles = [
+    ['hideNeverOpened', 'libraryScreen.chipHideNeverOpened'],
+    ['onlyAchievements', 'libraryScreen.chipOnlyAchievements'],
+    ['onlyFavorites', 'libraryScreen.chipOnlyFavorites'],
+  ] as const;
+  for (const [key, label] of toggles) {
+    if (filters[key]) chips.push({ key, label: t(label), remove: { [key]: false } });
   }
   return chips;
 }
@@ -91,44 +87,104 @@ function ViewButton({
   );
 }
 
-function GameCard({ game }: { game: Game }) {
+/** Status, favourite and removal, without leaving the library. */
+function GameMenu({ item }: { item: LibraryItem }) {
+  const { t } = useI18n();
+  const update = useApiMutation((body: Parameters<typeof api.updateEntry>[1]) =>
+    api.updateEntry(item.id, body),
+  );
+  const remove = useApiMutation(() => api.removeEntry(item.id));
+
+  return (
+    <details className="relative shrink-0">
+      <summary
+        aria-label={t('library.options', { title: item.game.title })}
+        className="flex size-8 cursor-pointer list-none items-center justify-center rounded-md text-muted hover:bg-surface hover:text-text [&::-webkit-details-marker]:hidden"
+      >
+        <MoreIcon />
+      </summary>
+      <div className="absolute right-0 z-20 mt-1 grid w-48 gap-2 rounded-lg border border-line bg-sidebar p-3 shadow-xl">
+        <label>
+          <span className="label">{t('library.changeStatus')}</span>
+          <select
+            className="field"
+            value={item.status}
+            onChange={(event) => update.mutate({ status: event.target.value as LibraryStatus })}
+          >
+            {LIBRARY_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t(`status.${status}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => update.mutate({ isFavorite: !item.isFavorite })}
+        >
+          {item.isFavorite ? t('library.unfavorite') : t('library.favorite')}
+        </button>
+        <button
+          type="button"
+          className="btn text-danger"
+          onClick={() => {
+            if (window.confirm(t('library.confirmRemove', { title: item.game.title }))) {
+              remove.mutate(undefined);
+            }
+          }}
+        >
+          {t('library.removeFromLibrary')}
+        </button>
+        <ErrorNote error={update.error ?? remove.error} />
+      </div>
+    </details>
+  );
+}
+
+function GameCard({ item }: { item: LibraryItem }) {
   const { t } = useI18n();
   return (
-    <li id={`game-${game.id}`} className="game-card flex scroll-mt-4 flex-col gap-2">
-      <GameCover
-        game={game}
-        shape="portrait"
-        title={
-          <span
-            aria-hidden="true"
-            className="block font-display text-2xl font-bold uppercase leading-[1.02] text-white"
-          >
-            {game.name}
-          </span>
-        }
-      />
-      <div className="flex flex-col gap-1">
-        <h3 className="truncate text-sm font-semibold">{game.name}</h3>
-        <p className="text-xs text-muted">{hoursText(game, t)}</p>
-        {game.status === 'playing' && (
-          <ProgressBar
-            value={game.progress}
-            label={t('libraryScreen.progressOf', { name: game.name })}
-            className="h-1 rounded-sm bg-divider"
-          />
-        )}
+    <li className="game-card flex flex-col gap-2">
+      {/* Cover and name are one link to the game's screen. */}
+      <Link to={`/games/${item.id}`} className="group flex flex-col gap-2 rounded-lg">
+        <span className="block transition-transform duration-150 group-hover:-translate-y-0.5">
+          <PortraitCover item={item} />
+        </span>
+        <h3 className="truncate text-sm font-semibold group-hover:underline">
+          {item.isFavorite && (
+            <span className="mr-1 inline-block align-[-1px] text-accent">
+              <StarIcon />
+              <span className="sr-only">{t('libraryScreen.favorite')}: </span>
+            </span>
+          )}
+          {item.game.title}
+        </h3>
+      </Link>
+      <div className="-mt-1 flex items-start justify-between gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="text-xs text-muted">{timeText(item, t)}</p>
+          {item.status === 'playing' && item.progressPercent !== null && (
+            <ProgressBar
+              value={item.progressPercent}
+              label={t('libraryScreen.progressOf', { name: item.game.title })}
+              className="h-1 rounded-sm bg-divider"
+            />
+          )}
+        </div>
+        <GameMenu item={item} />
       </div>
     </li>
   );
 }
 
-function GameList({ games }: { games: Game[] }) {
+function GameList({ items }: { items: LibraryItem[] }) {
   const { t } = useI18n();
   const cell = 'px-3 py-2 text-left';
   return (
     <div className="overflow-x-auto rounded-[10px] border border-line">
-      <table className="w-full min-w-[520px] border-collapse">
-        <thead className={`${LABEL} bg-surface`}>
+      <table className="w-full min-w-[560px] border-collapse">
+        <thead className="eyebrow bg-surface">
           <tr>
             <th scope="col" className={cell}>
               {t('libraryScreen.listName')}
@@ -142,28 +198,42 @@ function GameList({ games }: { games: Game[] }) {
             <th scope="col" className={cell}>
               {t('libraryScreen.listTime')}
             </th>
+            <th scope="col" className={cell}>
+              <span className="sr-only">{t('library.changeStatus')}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {games.map((game) => (
-            <tr key={game.id} id={`game-${game.id}`} className="border-t border-divider">
+          {items.map((item) => (
+            <tr key={item.id} className="border-t border-divider">
               <th scope="row" className={`${cell} font-semibold`}>
-                <span className="flex items-center gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    className="size-6 shrink-0 rounded"
-                    style={{ backgroundColor: game.coverColor }}
-                  />
-                  {game.name}
-                </span>
+                <Link
+                  to={`/games/${item.id}`}
+                  className="flex items-center gap-2.5 hover:underline"
+                >
+                  {item.game.coverUrl ? (
+                    <img
+                      src={item.game.coverUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-10 w-7 shrink-0 rounded object-cover"
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="h-10 w-7 shrink-0 rounded bg-selected" />
+                  )}
+                  {item.game.title}
+                </Link>
               </th>
               <td className={cell}>
-                <StatusBadge status={game.status} />
+                <StatusBadge status={item.status} />
               </td>
               <td className={cell}>
-                <PlatformBadge game={game} />
+                <PlatformBadge item={item} />
               </td>
-              <td className={`${cell} text-xs text-muted`}>{hoursText(game, t)}</td>
+              <td className={`${cell} text-xs text-muted`}>{timeText(item, t)}</td>
+              <td className={`${cell} w-10`}>
+                <GameMenu item={item} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -174,7 +244,7 @@ function GameList({ games }: { games: Game[] }) {
 
 export function LibrarySection({
   title,
-  games,
+  items,
   filters,
   view,
   onView,
@@ -182,7 +252,7 @@ export function LibrarySection({
   onClear,
 }: {
   title: string;
-  games: Game[];
+  items: LibraryItem[];
   filters: Filters;
   view: View;
   onView: (view: View) => void;
@@ -200,7 +270,7 @@ export function LibrarySection({
             {title}
           </h2>
           <p className="text-[13px] text-muted" aria-live="polite">
-            {tn('libraryScreen.showing', games.length)}
+            {tn('libraryScreen.showing', items.length)}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -223,7 +293,7 @@ export function LibrarySection({
 
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className={LABEL}>{t('libraryScreen.activeFilters')}</span>
+          <span className="eyebrow">{t('libraryScreen.activeFilters')}</span>
           {chips.map((chip) => (
             <button
               key={chip.key}
@@ -246,16 +316,16 @@ export function LibrarySection({
         </div>
       )}
 
-      {games.length === 0 ? (
+      {items.length === 0 ? (
         <p className="py-8 text-muted">{t('libraryScreen.empty')}</p>
       ) : view === 'grid' ? (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(168px,100%),1fr))] gap-x-[18px] gap-y-[22px]">
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} />
+          {items.map((item) => (
+            <GameCard key={item.id} item={item} />
           ))}
         </ul>
       ) : (
-        <GameList games={games} />
+        <GameList items={items} />
       )}
     </section>
   );
