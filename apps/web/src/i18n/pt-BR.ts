@@ -329,6 +329,7 @@ export const ptBR = {
     connected: 'Conectada',
     notConfigured: 'Não configurada',
     optionalNote: 'opcional',
+    unusedNote: 'opcional · ainda não usada nesta versão',
     active: 'Ativa · não precisa de chave',
     off: 'Desligada',
     turnOn: 'Ligar',

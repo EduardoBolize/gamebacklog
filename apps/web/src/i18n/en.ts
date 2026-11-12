@@ -332,6 +332,7 @@ export const en: Messages = {
     connected: 'Connected',
     notConfigured: 'Not set up',
     optionalNote: 'optional',
+    unusedNote: 'optional · not used in this version yet',
     active: 'Active · no key needed',
     off: 'Turned off',
     turnOn: 'Turn on',

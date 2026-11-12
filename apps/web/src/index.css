@@ -146,4 +146,16 @@
   .section-title {
     @apply text-base font-semibold;
   }
+  /*
+   * A card of the library grid. With hundreds of games, the browser lays out and paints only
+   * the cards near the viewport; the intrinsic size keeps the scrollbar honest for the rest.
+   */
+  .game-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 15rem auto 22rem;
+  }
+  /* Skipping paint also clips what overflows the card, so an open options menu opts out. */
+  .game-card:has(details[open]) {
+    content-visibility: visible;
+  }
 }

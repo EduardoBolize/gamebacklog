@@ -290,7 +290,9 @@ export function SourceRow({ source }: { source: SourceStatus }) {
 
   const name = t(`sourceName.${source.id}`);
   const isHltb = source.id === 'hltb';
-  const isOptional = source.id === 'rawg' || source.id === 'retroachievements';
+  // RAWG keys can be stored, but nothing reads them yet.
+  const isUnused = source.id === 'rawg';
+  const isOptional = isUnused || source.id === 'retroachievements';
 
   const state = isHltb
     ? source.enabled
@@ -300,7 +302,10 @@ export function SourceRow({ source }: { source: SourceStatus }) {
       ? [t('sources.connected'), source.detail && t('sources.steamId', { id: source.detail })]
           .filter(Boolean)
           .join(' · ')
-      : [t('sources.notConfigured'), isOptional && t('sources.optionalNote')]
+      : [
+          t('sources.notConfigured'),
+          isUnused ? t('sources.unusedNote') : isOptional && t('sources.optionalNote'),
+        ]
           .filter(Boolean)
           .join(' · ');
 
@@ -329,7 +334,7 @@ export function SourceRow({ source }: { source: SourceStatus }) {
               {source.configured ? t('sources.change') : t('sources.configure')}
             </button>
           )}
-          {(isHltb ? source.enabled : source.configured && !isOptional) && (
+          {(isHltb ? source.enabled : source.configured && !isUnused) && (
             <button
               type="button"
               className="btn-quiet"

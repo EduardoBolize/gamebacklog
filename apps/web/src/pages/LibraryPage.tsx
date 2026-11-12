@@ -55,7 +55,7 @@ function GameCard({ item }: { item: LibraryItem }) {
   const remove = useApiMutation(() => api.removeEntry(item.id));
 
   return (
-    <li className="group relative">
+    <li className="game-card group relative">
       <Link to={`/games/${item.id}`} className="block rounded-base">
         <Cover title={item.game.title} url={item.game.coverUrl} />
         <span className="mt-2 block truncate text-sm font-medium">{item.game.title}</span>
@@ -72,7 +72,7 @@ function GameCard({ item }: { item: LibraryItem }) {
         >
           ⋯
         </summary>
-        <div className="absolute right-0 z-10 mt-1 grid w-56 gap-2 rounded-base border border-line bg-bg p-3">
+        <div className="absolute right-0 z-10 mt-1 grid w-[9.5rem] gap-2 rounded-base border border-line bg-bg p-3">
           <label>
             <span className="label">{t('library.changeStatus')}</span>
             <select
