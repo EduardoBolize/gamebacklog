@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Game Backlog — Biblioteca</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d1c}
+a{color:#ffd23f}a:hover{color:#ffe485}
+input[type=checkbox]{accent-color:#ffd23f;width:16px;height:16px;margin:0}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #120d1c; color: #f3eefa; font-family: Inter, system-ui, sans-serif; font-size: 14px; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 20px; min-height: 64px; background: #0c0814; border-bottom: 1px solid #2a1f3d">
+<button aria-label="Mostrar ou ocultar a lista lateral" onClick="{{toggleSidebar}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #211833; border: 1px solid #33264a; border-radius: 8px; color: #f3eefa; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+</button>
+<div style="display: flex; align-items: center; gap: 10px">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffd23f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"></path><path d="M17.3 5H6.7a4 4 0 0 0-3.96 3.43l-.73 5.1A3 3 0 0 0 7 16.2L9 14h6l2 2.2a3 3 0 0 0 4.99-2.67l-.73-5.1A4 4 0 0 0 17.3 5z"></path></svg>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: 0.08em">GAME BACKLOG</span>
+</div>
+<nav aria-label="Seções" style="display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 480px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button onClick="{{t.pick}}" style="background: transparent; border: 0; border-bottom: 3px solid {{t.border}}; color: {{t.fg}}; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; padding: 20px 14px 17px; cursor: pointer">{{t.label}}</button>
+</sc-for>
+</nav>
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #33264a; border-radius: 999px; color: #a99cc0; font-size: 12px">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #6fdc9a"></span>
+<span>Steam sincronizada · há 12 min</span>
+</div>
+<button aria-label="Sincronizar biblioteca da Steam" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid #33264a; border-radius: 8px; color: #d6cde6; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></svg>
+</button>
+<div aria-label="Perfil de Eduardo" role="img" style="width: 40px; height: 40px; border-radius: 50%; background: #ffd23f; color: #0c0814; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">EB</div>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: stretch; flex: 1 1 auto">
+
+<sc-if value="{{sidebarOpen}}" hint-placeholder-val="{{ true }}">
+<aside aria-label="Filtros e lista de jogos" style="flex: 1 1 300px; box-sizing: border-box; background: #1a1228; border-right: 1px solid #2a1f3d; padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 22px">
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="busca" style="font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em">BUSCAR NA BIBLIOTECA</label>
+<div style="display: flex; align-items: center; gap: 8px; background: #120d1c; border: 1px solid #3d2e57; border-radius: 8px; padding: 0 12px; height: 44px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a99cc0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input id="busca" type="search" placeholder="Nome do jogo…" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #f3eefa; font: inherit">
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em">MOSTRAR</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{statusPills}}" as="p" hint-placeholder-count="5">
+<button onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid {{p.border}}; background: {{p.bg}}; color: {{p.fg}}; font: 600 13px Inter, sans-serif; cursor: pointer">{{p.label}} <span style="opacity: 0.75; font-weight: 500">{{p.count}}</span></button>
+</sc-for>
+</div>
+</div>
+
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em; padding: 0; margin-bottom: 10px">PLATAFORMA</legend>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox" checked=""> <span style="flex: 1">Steam</span><span style="color: #a99cc0; font-size: 12px">412</span></label>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox"> <span style="flex: 1">PlayStation 5</span><span style="color: #a99cc0; font-size: 12px">38</span></label>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox"> <span style="flex: 1">Nintendo Switch</span><span style="color: #a99cc0; font-size: 12px">27</span></label>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox"> <span style="flex: 1">Xbox</span><span style="color: #a99cc0; font-size: 12px">9</span></label>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox"> <span style="flex: 1">Outras / adicionados à mão</span><span style="color: #a99cc0; font-size: 12px">4</span></label>
+</fieldset>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em">GÊNERO</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #ffd23f; background: #3b2a63; color: #f3eefa; font: 500 12px Inter, sans-serif; cursor: pointer">RPG</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Ação</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Metroidvania</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Roguelike</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">JRPG</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Aventura</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Simulação</button>
+<button style="min-height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; font: 500 12px Inter, sans-serif; cursor: pointer">Plataforma</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ordem" style="font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em">ORDENAR POR</label>
+<select id="ordem" style="height: 44px; background: #120d1c; border: 1px solid #3d2e57; border-radius: 8px; color: #f3eefa; font: inherit; padding: 0 10px">
+<option>Jogados recentemente</option>
+<option>Nome (A–Z)</option>
+<option>Tempo no HowLongToBeat</option>
+<option>Minha nota</option>
+<option>Adicionados recentemente</option>
+</select>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox" checked=""> Ocultar jogos da Steam nunca abertos</label>
+<label style="display: flex; align-items: center; gap: 10px; color: #f3eefa"><input type="checkbox"> Só jogos com conquistas</label>
+</div>
+
+<div style="height: 1px; background: #33264a"></div>
+
+<div style="display: flex; flex-direction: column; gap: 18px">
+<sc-for list="{{sideGroups}}" as="grp" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #a99cc0; letter-spacing: 0.08em; padding: 0 6px 6px">
+<span>{{grp.title}}</span><span>{{grp.count}}</span>
+</div>
+<sc-for list="{{grp.items}}" as="it" hint-placeholder-count="4">
+<button style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 4px 6px; background: {{it.rowBg}}; border: 0; border-radius: 6px; color: #f3eefa; font: 500 13px Inter, sans-serif; text-align: left; cursor: pointer">
+<span style="width: 24px; height: 24px; border-radius: 4px; background: {{it.color}}; flex: none"></span>
+<span style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.name}}</span>
+<span style="width: 8px; height: 8px; border-radius: 50%; background: {{it.fg}}; flex: none"></span>
+</button>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</aside>
+</sc-if>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 36px">
+
+<sc-if value="{{showNote}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; background: #3b2a63; border: 1px solid #5b4590; color: #f3eefa">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffd23f" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v4h1"></path></svg>
+<span>{{noteText}}</span>
+</div>
+</sc-if>
+
+<section aria-labelledby="h-continue" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+<h2 id="h-continue" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase">Continue jogando</h2>
+<a href="#biblioteca" style="font-size: 13px; font-weight: 600">Ver todos os que estou jogando</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px">
+<sc-for list="{{playing}}" as="c" hint-placeholder-count="3">
+<article style="display: flex; flex-direction: column; background: #211833; border: 1px solid #33264a; border-radius: 10px; overflow: hidden">
+<div style="aspect-ratio: 16 / 7; background: {{c.color}}; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 16px; box-sizing: border-box">
+<span style="align-self: flex-start; padding: 4px 8px; border-radius: 4px; background: rgba(12,8,20,0.85); color: #d6cde6; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">{{c.platform}}</span>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; line-height: 1; text-transform: uppercase; color: #ffffff">{{c.name}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #a99cc0"><span>{{c.hoursText}}</span><span style="color: #f3eefa; font-weight: 600">{{c.pct}}</span></div>
+<div style="height: 6px; border-radius: 3px; background: #120d1c; overflow: hidden"><div style="height: 100%; width: {{c.pct}}; background: #ffd23f"></div></div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button style="min-height: 36px; padding: 0 14px; border-radius: 6px; border: 0; background: #ffd23f; color: #0c0814; font: 700 13px Inter, sans-serif; cursor: pointer">Dicas sem spoiler</button>
+<button style="min-height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #f3eefa; font: 600 13px Inter, sans-serif; cursor: pointer">Guia 100% / platina</button>
+</div>
+</div>
+</article>
+</sc-for>
+</div>
+</section>
+
+<section id="biblioteca" aria-labelledby="h-lib" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<h2 id="h-lib" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase">{{libTitle}}</h2>
+<span style="color: #a99cc0; font-size: 13px">{{shownText}}</span>
+</div>
+<div style="display: flex; gap: 6px">
+<button aria-label="Ver em grade de capas" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #ffd23f; background: #3b2a63; color: #f3eefa; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg></button>
+<button aria-label="Ver em lista" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #3d2e57; background: transparent; color: #d6cde6; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></button>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="color: #a99cc0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em">FILTROS ATIVOS</span>
+<button style="display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #3d2e57; background: #211833; color: #f3eefa; font: 500 12px Inter, sans-serif; cursor: pointer">Steam <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+<button style="display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #3d2e57; background: #211833; color: #f3eefa; font: 500 12px Inter, sans-serif; cursor: pointer">RPG <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+<button style="display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #3d2e57; background: #211833; color: #f3eefa; font: 500 12px Inter, sans-serif; cursor: pointer">Sem jogos nunca abertos <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+<button style="min-height: 30px; padding: 0 6px; border: 0; background: transparent; color: #ffd23f; font: 600 12px Inter, sans-serif; cursor: pointer">Limpar filtros</button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 22px 18px">
+<sc-for list="{{cards}}" as="g" hint-placeholder-count="12">
+<article style="display: flex; flex-direction: column; gap: 8px">
+<div style="aspect-ratio: 2 / 3; border-radius: 8px; background: {{g.color}}; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.06)">
+<div style="display: flex; justify-content: space-between; gap: 6px">
+<span style="padding: 4px 7px; border-radius: 4px; background: rgba(12,8,20,0.88); color: {{g.fg}}; font-size: 11px; font-weight: 700; letter-spacing: 0.04em">{{g.label}}</span>
+<span style="padding: 4px 7px; border-radius: 4px; background: rgba(12,8,20,0.88); color: #d6cde6; font-size: 11px; font-weight: 600">{{g.platform}}</span>
+</div>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.02; text-transform: uppercase; color: #ffffff">{{g.name}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.name}}</span>
+<span style="color: #a99cc0; font-size: 12px">{{g.hoursText}}</span>
+<sc-if value="{{g.showProgress}}" hint-placeholder-val="{{ false }}">
+<div style="height: 4px; border-radius: 2px; background: #2a1f3d; overflow: hidden"><div style="height: 100%; width: {{g.pct}}; background: #ffd23f"></div></div>
+</sc-if>
+</div>
+</article>
+</sc-for>
+</div>
+</section>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { view: 'todos', tab: 'biblioteca', sidebarOpen: true };
+}
+renderVals() {
+var st = this.state || {};
+var view = st.view || 'todos';
+var tab = st.tab || 'biblioteca';
+var sidebarOpen = st.sidebarOpen !== false;
+var self = this;
+
+var meta = {
+jogando: { label: 'JOGANDO', fg: '#ffd23f' },
+backlog: { label: 'QUERO JOGAR', fg: '#d6cde6' },
+zerado: { label: 'ZERADO', fg: '#6fdc9a' },
+platinado: { label: 'PLATINADO', fg: '#c4a6ff' }
+};
+
+var games = [
+{ name: "Baldur's Gate 3", platform: 'STEAM', status: 'jogando', hours: 74, hltb: 118, progress: 62, color: '#4a2a1f', recent: true },
+{ name: 'Hades II', platform: 'STEAM', status: 'jogando', hours: 31, hltb: 45, progress: 48, color: '#3d1f4f', recent: true },
+{ name: 'Stardew Valley', platform: 'STEAM', status: 'jogando', hours: 112, hltb: 95, progress: 81, color: '#2b4a2a', recent: true },
+{ name: 'Balatro', platform: 'STEAM', status: 'jogando', hours: 22, hltb: 30, progress: 35, color: '#5a1f2c' },
+{ name: 'Elden Ring', platform: 'STEAM', status: 'zerado', hours: 96, hltb: 100, progress: 100, color: '#3b3420', recent: true },
+{ name: 'Hollow Knight', platform: 'STEAM', status: 'platinado', hours: 64, hltb: 63, progress: 100, color: '#2a2050' },
+{ name: 'The Witcher 3', platform: 'STEAM', status: 'platinado', hours: 140, hltb: 173, progress: 100, color: '#2d3a2a' },
+{ name: 'Red Dead Redemption 2', platform: 'STEAM', status: 'zerado', hours: 81, hltb: 83, progress: 100, color: '#5a2a1a' },
+{ name: 'Outer Wilds', platform: 'STEAM', status: 'zerado', hours: 24, hltb: 22, progress: 100, color: '#4a3a12' },
+{ name: 'Cyberpunk 2077', platform: 'STEAM', status: 'backlog', hours: 3, hltb: 60, progress: 0, color: '#4a4413' },
+{ name: 'Sekiro', platform: 'STEAM', status: 'backlog', hours: 0, hltb: 40, progress: 0, color: '#4f1d1d' },
+{ name: 'Disco Elysium', platform: 'STEAM', status: 'backlog', hours: 0, hltb: 33, progress: 0, color: '#2f2a45' },
+{ name: 'Metaphor: ReFantazio', platform: 'STEAM', status: 'backlog', hours: 0, hltb: 80, progress: 0, color: '#1d3b3a' },
+{ name: 'God of War Ragnarök', platform: 'PS5', status: 'zerado', hours: 38, hltb: 40, progress: 100, color: '#3a1f4a' },
+{ name: 'Persona 5 Royal', platform: 'PS5', status: 'backlog', hours: 0, hltb: 103, progress: 0, color: '#5c1414' },
+{ name: 'Celeste', platform: 'SWITCH', status: 'platinado', hours: 19, hltb: 38, progress: 100, color: '#3a2350' },
+{ name: 'Zelda: Tears of the Kingdom', platform: 'SWITCH', status: 'zerado', hours: 88, hltb: 98, progress: 100, color: '#21413a' },
+{ name: 'Death Stranding', platform: 'STEAM', status: 'backlog', hours: 6, hltb: 55, progress: 0, color: '#33283f' }
+];
+
+var decorate = function (g) {
+var m = meta[g.status];
+var hoursText = g.status === 'backlog'
+? (g.hours > 0 ? g.hours + 'h jogadas · HLTB ' + g.hltb + 'h' : 'Nunca jogado · HLTB ' + g.hltb + 'h')
+: g.hours + 'h jogadas · HLTB ' + g.hltb + 'h';
+return Object.assign({}, g, {
+label: m.label,
+fg: m.fg,
+hoursText: hoursText,
+pct: g.progress + '%',
+showProgress: g.status === 'jogando',
+rowBg: g.status === 'jogando' ? '#2a1f40' : 'transparent'
+});
+};
+
+var all = games.map(decorate);
+var count = function (s) { return all.filter(function (g) { return g.status === s; }).length; };
+
+var pillDefs = [
+{ id: 'todos', label: 'Todos', count: all.length },
+{ id: 'jogando', label: 'Jogando', count: count('jogando') },
+{ id: 'backlog', label: 'Quero jogar', count: count('backlog') },
+{ id: 'zerado', label: 'Zerados', count: count('zerado') },
+{ id: 'platinado', label: 'Platinados', count: count('platinado') }
+];
+var statusPills = pillDefs.map(function (p) {
+var on = p.id === view;
+return Object.assign({}, p, {
+bg: on ? '#ffd23f' : 'transparent',
+fg: on ? '#0c0814' : '#d6cde6',
+border: on ? '#ffd23f' : '#3d2e57',
+pick: function () { self.setState({ view: p.id }); }
+});
+});
+
+var tabDefs = [
+{ id: 'biblioteca', label: 'Biblioteca', view: 'todos' },
+{ id: 'jogando', label: 'Jogando agora', view: 'jogando' },
+{ id: 'quero', label: 'Quero jogar', view: 'backlog' },
+{ id: 'wishlist', label: 'Wishlist' },
+{ id: 'recs', label: 'Recomendações' },
+{ id: 'stats', label: 'Estatísticas' }
+];
+var tabs = tabDefs.map(function (t) {
+var on = t.id === tab;
+return {
+label: t.label,
+fg: on ? '#ffffff' : '#a99cc0',
+border: on ? '#ffd23f' : 'transparent',
+pick: function () {
+var next = { tab: t.id };
+if (t.view) next.view = t.view;
+self.setState(next);
+}
+};
+});
+
+var notes = {
+wishlist: 'Wishlist ganha uma tela própria (jogos que você ainda não tem, com preço e alerta de promoção). Abaixo, a biblioteca continua como referência.',
+recs: 'Recomendações ganha uma tela própria (sugestões com base no que você zerou e nas suas notas). Abaixo, a biblioteca continua como referência.',
+stats: 'Estatísticas ganha uma tela própria (horas por gênero, zerados por ano, platinas). Abaixo, a biblioteca continua como referência.'
+};
+
+var cards = view === 'todos' ? all : all.filter(function (g) { return g.status === view; });
+var titles = { todos: 'Biblioteca', jogando: 'Jogando agora', backlog: 'Quero jogar', zerado: 'Zerados', platinado: 'Platinados' };
+
+var sideGroups = [
+{ title: 'JOGANDO AGORA', items: all.filter(function (g) { return g.status === 'jogando'; }) },
+{ title: 'JOGADOS RECENTEMENTE', items: all.filter(function (g) { return g.recent && g.status !== 'jogando'; }) },
+{ title: 'BIBLIOTECA STEAM', items: all.filter(function (g) { return g.platform === 'STEAM' && !g.recent && g.status !== 'jogando'; }).slice(0, 6) }
+].map(function (grp, i) {
+return Object.assign({}, grp, { count: i === 2 ? '412' : String(grp.items.length) });
+});
+
+return {
+tabs: tabs,
+statusPills: statusPills,
+sideGroups: sideGroups,
+sidebarOpen: sidebarOpen,
+toggleSidebar: function () { self.setState({ sidebarOpen: !sidebarOpen }); },
+playing: all.filter(function (g) { return g.status === 'jogando'; }).slice(0, 3),
+cards: cards,
+libTitle: titles[view] || 'Biblioteca',
+shownText: 'Exibindo ' + cards.length + ' jogos',
+showNote: !!notes[tab],
+noteText: notes[tab] || ''
+};
+}
+}
+</script>
+</body>
+</html>
