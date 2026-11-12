@@ -23,7 +23,8 @@ import { isoDateTimeSchema } from './common.ts';
 
 /**
  * Format of the JSON export, version 4: version 1, plus `checkpoints.bossName` (2), PSN and Xbox
- * as origins (3), and the branches of a map with what the player finished (4).
+ * as origins (3), the branches of a map with what the player finished (4), and the achievement
+ * each collectible counts towards, with the language it was written in (5).
  *
  * One array per table, rows exactly as stored, with instants as ISO strings. Objects are strict
  * on purpose: a column added to the database without updating this file fails the round-trip
@@ -192,9 +193,13 @@ export const exportTablesSchema = z.strictObject({
       gameId: text,
       checkpointId: optionalText,
       name: text,
+      sourceName: optionalText,
       description: optionalText,
       category: optionalText,
       isMissable: z.boolean(),
+      achievementName: optionalText,
+      achievementId: optionalText,
+      locale: optionalText,
       sortOrder: z.number().int(),
       origin: contentOriginSchema,
       originUrl: optionalText,
@@ -314,7 +319,7 @@ export type ExportCacheName = keyof ExportCaches;
 
 export const exportFileSchema = z.strictObject({
   app: z.literal(APP_NAME),
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   appVersion: z.string(),
   exportedAt: instant,
   data: exportTablesSchema,

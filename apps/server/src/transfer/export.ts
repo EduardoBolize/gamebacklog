@@ -95,6 +95,20 @@ export const EXPORT_MIGRATIONS: Record<number, ExportMigration> = {
       })),
     },
   }),
+  // 4 → 5: collectibles say which achievement they count towards and their language.
+  4: (file) => ({
+    ...file,
+    data: {
+      ...(file.data as Record<string, unknown>),
+      collectibles: rowsOf(file, 'collectibles').map((row) => ({
+        sourceName: null,
+        achievementName: null,
+        achievementId: null,
+        locale: null,
+        ...row,
+      })),
+    },
+  }),
 };
 
 /** Brings a file of any known version up to the current format. */

@@ -672,6 +672,15 @@ export const ptBR = {
     pointOfNoReturnAhead: '⚠️ Ponto sem volta à frente: {name}.',
     missable: 'Conquistas perdíveis nesta área',
     collectibles: 'Colecionáveis e segredos',
+    forAchievements: 'Para conquistas',
+    forAchievementsNote:
+      'Itens, chefes e segredos desta área que contam para alguma conquista ou troféu.',
+    forCompletion: 'Para o 100%',
+    forCompletionNote: 'O que vale pegar nesta área, mas não conta para conquistas.',
+    countsFor: 'conta para: {name}',
+    emptyGroup: 'Nada nesta lista para esta área.',
+    outdated:
+      'Esta lista foi escrita em outro idioma ou por uma versão anterior do app, sem separar o que conta para conquistas.',
     missableTag: 'perdível',
     generate: 'Listar o que há nesta área',
     regenerate: 'Reescrever a lista em português',

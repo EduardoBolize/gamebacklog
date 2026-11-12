@@ -1,5 +1,5 @@
 import type { AreaChecklistResponse, Provenance } from '@gamebacklog/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { readAiCache, runAiTask } from '../ai/pipeline.ts';
 import {
   AREA_CHECKLIST_PROMPT_VERSION,
@@ -15,6 +15,7 @@ import {
   collectibles,
 } from '../db/schema/index.ts';
 import { badRequest, conflict, notFound } from '../errors.ts';
+import { achievementLinkFor, syncAchievements } from '../achievements/service.ts';
 import { gameOfPlaythrough, loadMap, toCheckpoint } from './chapter-map.ts';
 import { collectWikiDocs, normalizeText, renderSources, type ContextDoc } from './wiki.ts';
 
@@ -37,11 +38,24 @@ function locate(ctx: AppContext, playthroughId: string, checkpointId: string | u
 /** Language the descriptions are written in: the one the interface is in. */
 export type ChecklistLocale = 'pt-BR' | 'en';
 
-function taskIdentity(gameId: string, checkpoint: CheckpointRow, locale: ChecklistLocale) {
+function taskIdentity(
+  ctx: AppContext,
+  gameId: string,
+  checkpoint: CheckpointRow,
+  locale: ChecklistLocale,
+) {
   return {
     feature: 'area_checklist',
     gameId,
-    cacheKeyParts: [checkpoint.id, normalizeText(checkpoint.name), locale],
+    // The AI answers with achievement numbers, so the list it saw is part of the question.
+    cacheKeyParts: [
+      checkpoint.id,
+      normalizeText(checkpoint.name),
+      locale,
+      gameAchievements(ctx, gameId)
+        .map((row) => row.id)
+        .join(','),
+    ],
     promptVersion: AREA_CHECKLIST_PROMPT_VERSION,
     schema: areaChecklistSchema,
   };
@@ -125,6 +139,8 @@ function buildResponse(
       description: item.description,
       category: item.category,
       isMissable: item.isMissable,
+      achievementName: item.achievementName,
+      achievementId: item.achievementId,
       isCollected: collected.has(item.id),
       origin: item.origin,
     })),
@@ -135,9 +151,11 @@ function buildResponse(
     })),
     nextPointOfNoReturn: nextPointOfNoReturn ? toCheckpoint(nextPointOfNoReturn) : null,
     sources: extra.sources ?? urls.map((url) => ({ origin: 'wiki' as const, url })),
-    // "Generated" means generated in this language: a list written in another one can be
-    // asked for again, and comes back with its descriptions rewritten.
-    generated: readAiCache(ctx, taskIdentity(gameId, checkpoint, extra.locale)) !== null,
+    // "Generated" means generated, and stored, in this language: a list written in another
+    // one can be asked for again, and comes back rewritten.
+    generated:
+      readAiCache(ctx, taskIdentity(ctx, gameId, checkpoint, extra.locale)) !== null &&
+      items.every((item) => item.origin !== 'ai' || item.locale === extra.locale),
     cached: extra.cached,
   };
 }
@@ -168,17 +186,32 @@ export async function generateAreaChecklist(
 ): Promise<AreaChecklistResponse> {
   const { locale } = options;
   const { game, rows, checkpoint } = locate(ctx, playthroughId, options.checkpointId);
+  // Data first: a game linked to an account whose achievements were never read gets them now,
+  // so the AI can tell what counts towards each one instead of guessing.
+  if (gameAchievements(ctx, game.id).length === 0) {
+    const { entry } = gameOfPlaythrough(ctx.db, playthroughId);
+    if (achievementLinkFor(ctx.db, entry)) {
+      await syncAchievements(ctx, entry.id).catch(() => undefined);
+    }
+  }
   const listed = gameAchievements(ctx, game.id);
 
   const result = await runAiTask<ContextDoc[], ReturnType<typeof areaChecklistSchema.parse>>(ctx, {
-    ...taskIdentity(game.id, checkpoint, locale),
-    maxTokens: 2500,
+    ...taskIdentity(ctx, game.id, checkpoint, locale),
+    maxTokens: 5000,
     collect: () =>
-      collectWikiDocs(ctx, game.id, [
-        checkpoint.name,
-        `${checkpoint.name} collectibles`,
-        `${game.title} missable`,
-      ]),
+      collectWikiDocs(
+        ctx,
+        game.id,
+        [
+          checkpoint.name,
+          `${checkpoint.name} collectibles`,
+          // With no achievement data at all, the wiki's own list stands in for it.
+          listed.length === 0 ? `${game.title} trophies achievements` : null,
+          `${game.title} missable`,
+        ],
+        4,
+      ),
     build: (docs, budget) =>
       buildAreaChecklistPrompt({
         title: game.title,
@@ -187,69 +220,109 @@ export async function generateAreaChecklist(
         locale,
         sources: renderSources(
           docs,
-          [checkpoint.name, 'collectible', 'secret', 'missable', 'item', 'location'],
+          [
+            checkpoint.name,
+            'collectible',
+            'secret',
+            'missable',
+            'item',
+            'location',
+            'achievement',
+            'trophy',
+          ],
           budget,
         ),
       }),
   });
 
-  // On a cache hit everything below was already stored the first time.
-  if (result.context) {
-    const docs = result.context;
-    const fetchedAt = ctx.now();
-    ctx.db.transaction((tx) => {
-      const existing = new Map(
-        tx
-          .select()
-          .from(collectibles)
-          .where(
-            and(eq(collectibles.gameId, game.id), eq(collectibles.checkpointId, checkpoint.id)),
-          )
-          .all()
-          .map((row) => [normalizeText(row.name), row]),
+  // Stored on every call, cache hits included: the same answer may have to replace a list
+  // written in another language, which costs no tokens when that language was asked before.
+  const docs = result.context ?? [];
+  const fetchedAt = ctx.now();
+  const achievementByName = new Map(listed.map((row) => [normalizeText(row.name), row.id]));
+  ctx.db.transaction((tx) => {
+    const existing = tx
+      .select()
+      .from(collectibles)
+      .where(and(eq(collectibles.gameId, game.id), eq(collectibles.checkpointId, checkpoint.id)))
+      .orderBy(collectibles.sortOrder, collectibles.id)
+      .all();
+    const used = new Set<string>();
+    // Lists written before `sourceName` existed were in English, so their name is that key.
+    const byKey = new Map(existing.map((row) => [normalizeText(row.sourceName ?? row.name), row]));
+    const byName = new Map(existing.map((row) => [normalizeText(row.name), row]));
+
+    const seen = new Set<string>();
+    result.output.collectibles.forEach((item, index) => {
+      const key = normalizeText(item.sourceName ?? item.name);
+      if (seen.has(key)) return;
+      seen.add(key);
+      const achievementId =
+        (item.achievement ? listed[item.achievement - 1]?.id : undefined) ??
+        (item.achievementName
+          ? achievementByName.get(normalizeText(item.achievementName))
+          : undefined) ??
+        null;
+      const values = {
+        name: item.name,
+        sourceName: item.sourceName ?? item.name,
+        description: item.description,
+        category: item.category,
+        isMissable: item.isMissable,
+        achievementName:
+          item.achievementName ??
+          (achievementId ? (listed.find((row) => row.id === achievementId)?.name ?? null) : null),
+        achievementId,
+        locale,
+        sortOrder: index,
+        fetchedAt,
+      };
+      // The same item, whatever language either list is in.
+      const known = [byKey.get(key), byName.get(normalizeText(item.name))].find(
+        (row) => row && !used.has(row.id),
       );
-      const seen = new Set<string>();
-      result.output.collectibles.forEach((item, index) => {
-        const key = normalizeText(item.name);
-        if (seen.has(key)) return;
-        seen.add(key);
-        const known = existing.get(key);
-        if (known) {
-          // Asked again (typically in another language): refresh what the AI wrote before,
-          // never what the user typed.
-          if (known.origin === 'ai') {
-            tx.update(collectibles)
-              .set({ description: item.description, category: item.category, fetchedAt })
-              .where(eq(collectibles.id, known.id))
-              .run();
-          }
-          return;
+      if (known) {
+        used.add(known.id);
+        // Never what the user typed.
+        if (known.origin === 'ai') {
+          tx.update(collectibles).set(values).where(eq(collectibles.id, known.id)).run();
         }
-        tx.insert(collectibles)
-          .values({
-            gameId: game.id,
-            checkpointId: checkpoint.id,
-            name: item.name,
-            description: item.description,
-            category: item.category,
-            isMissable: item.isMissable,
-            sortOrder: index,
-            origin: 'ai',
-            originUrl: docs[0]?.url ?? null,
-            fetchedAt,
-          })
-          .run();
-      });
-      for (const number of result.output.missableAchievements) {
-        const row = listed[number - 1];
-        if (!row || row.classifiedBy === 'user') continue;
-        tx.update(achievements)
-          .set({ isMissable: true, checkpointId: checkpoint.id, classifiedBy: 'ai' })
-          .where(eq(achievements.id, row.id))
-          .run();
+        return;
       }
+      tx.insert(collectibles)
+        .values({
+          ...values,
+          gameId: game.id,
+          checkpointId: checkpoint.id,
+          origin: 'ai',
+          originUrl: docs[0]?.url ?? existing[0]?.originUrl ?? null,
+        })
+        .run();
     });
-  }
+
+    // What the new answer no longer lists goes away, unless someone already ticked it.
+    const ticked = new Set(
+      tx
+        .select({ id: collectibleProgress.collectibleId })
+        .from(collectibleProgress)
+        .where(eq(collectibleProgress.isCollected, true))
+        .all()
+        .map((row) => row.id),
+    );
+    const stale = existing
+      .filter((row) => row.origin === 'ai' && !used.has(row.id) && !ticked.has(row.id))
+      .map((row) => row.id);
+    if (stale.length > 0) tx.delete(collectibles).where(inArray(collectibles.id, stale)).run();
+
+    for (const number of result.output.missableAchievements) {
+      const row = listed[number - 1];
+      if (!row || row.classifiedBy === 'user') continue;
+      tx.update(achievements)
+        .set({ isMissable: true, checkpointId: checkpoint.id, classifiedBy: 'ai' })
+        .where(eq(achievements.id, row.id))
+        .run();
+    }
+  });
 
   return buildResponse(ctx, playthroughId, game.id, rows, checkpoint, {
     cached: result.cached,

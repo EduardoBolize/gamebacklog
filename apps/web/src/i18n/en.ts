@@ -672,6 +672,15 @@ export const en: Messages = {
     pointOfNoReturnAhead: '⚠️ Point of no return ahead: {name}.',
     missable: 'Missable achievements in this area',
     collectibles: 'Collectibles and secrets',
+    forAchievements: 'For achievements',
+    forAchievementsNote:
+      'Items, bosses and secrets in this area that count towards an achievement or trophy.',
+    forCompletion: 'For 100%',
+    forCompletionNote: 'Worth getting in this area, but not counted by any achievement.',
+    countsFor: 'counts for: {name}',
+    emptyGroup: 'Nothing on this list for this area.',
+    outdated:
+      'This list was written in another language or by an older version of the app, without telling apart what counts for achievements.',
     missableTag: 'missable',
     generate: 'List what is in this area',
     regenerate: 'Rewrite the list in English',

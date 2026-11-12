@@ -1,4 +1,4 @@
-import type { Playthrough } from '@gamebacklog/shared';
+import type { AreaChecklistResponse, Playthrough } from '@gamebacklog/shared';
 import { useState } from 'react';
 import { ApiError, useApiMutation } from '../../api.ts';
 import { assistApi, useChecklist, useMap } from '../../api-assist.ts';
@@ -6,6 +6,48 @@ import { ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import { AreaMedia } from './AreaMedia.tsx';
 import { SourceList } from './ChapterMapSection.tsx';
+
+type Item = AreaChecklistResponse['collectibles'][number];
+
+function ItemList({
+  items,
+  onToggle,
+}: {
+  items: Item[];
+  onToggle: (item: Item, isCollected: boolean) => void;
+}) {
+  const { t } = useI18n();
+  if (items.length === 0) return <p className="note">{t('checklist.emptyGroup')}</p>;
+  return (
+    <ul className="grid gap-1">
+      {items.map((item) => (
+        <li key={item.id} className="flex items-start gap-3 py-1">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 shrink-0 accent-accent"
+            aria-label={t('checklist.markCollected', { name: item.name })}
+            checked={item.isCollected}
+            onChange={(event) => onToggle(item, event.target.checked)}
+          />
+          <span className="text-sm">
+            <span className={item.isCollected ? 'text-muted line-through' : 'font-medium'}>
+              {item.name}
+            </span>
+            {item.isMissable && (
+              <span className="ml-2 text-danger">{t('checklist.missableTag')}</span>
+            )}
+            {item.achievementName && (
+              <span className="ml-2 text-accent">
+                {t('checklist.countsFor', { name: item.achievementName })}
+              </span>
+            )}
+            {item.description && <span className="block text-muted">{item.description}</span>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
  * 100% mode: what there is to collect in one area, and what can be lost for good there.
@@ -36,6 +78,10 @@ export function AreaChecklist({ run }: { run: Playthrough }) {
   const data = checklist.data;
   const steps = map.data?.map?.checkpoints ?? [];
   const aiConnected = map.data?.aiConnected ?? false;
+  const hasAiItems = data.collectibles.some((item) => item.origin === 'ai');
+  const forAchievements = data.collectibles.filter((item) => item.achievementName);
+  const forCompletion = data.collectibles.filter((item) => !item.achievementName);
+  const toggle = (item: Item, isCollected: boolean) => collect.mutate({ id: item.id, isCollected });
   const somethingToLose =
     data.missableAchievements.length > 0 ||
     data.collectibles.some((item) => item.isMissable && !item.isCollected);
@@ -66,68 +112,69 @@ export function AreaChecklist({ run }: { run: Playthrough }) {
         </p>
       )}
 
-      {data.missableAchievements.length > 0 && (
-        <div className="grid gap-1">
-          <h3 className="label">{t('checklist.missable')}</h3>
-          <ul className="grid gap-1 text-sm">
-            {data.missableAchievements.map((item) => (
-              <li key={item.id}>
-                <span className="font-medium">{item.name}</span>
-                {item.description && <span className="text-muted"> — {item.description}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="grid gap-2">
-        <h3 className="label">{t('checklist.collectibles')}</h3>
-        {data.collectibles.length > 0 ? (
-          <ul className="grid gap-1">
-            {data.collectibles.map((item) => (
-              <li key={item.id} className="flex items-start gap-3 py-1">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 shrink-0 accent-accent"
-                  aria-label={t('checklist.markCollected', { name: item.name })}
-                  checked={item.isCollected}
-                  onChange={(event) =>
-                    collect.mutate({ id: item.id, isCollected: event.target.checked })
-                  }
-                />
-                <span className="text-sm">
-                  <span className={item.isCollected ? 'text-muted line-through' : 'font-medium'}>
-                    {item.name}
-                  </span>
-                  {item.isMissable && (
-                    <span className="ml-2 text-danger">{t('checklist.missableTag')}</span>
-                  )}
-                  {item.description && <span className="block text-muted">{item.description}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : data.generated ? (
-          <p className="note">{t('checklist.nothingFound')}</p>
-        ) : !aiConnected ? (
-          <p className="note">{t('checklist.needsAi')}</p>
-        ) : null}
-
-        {!data.generated && aiConnected && (
+      {/* A list written in another language, or by an older version, is offered for a rewrite
+          up front: at the bottom of a long list it went unnoticed. */}
+      {!data.generated && aiConnected && hasAiItems && (
+        <div className="grid justify-items-start gap-2 rounded-base border border-accent p-3">
+          <p className="text-sm">{t('checklist.outdated')}</p>
           <button
             type="button"
-            className="btn justify-self-start"
+            className="btn btn-primary"
             disabled={generate.isPending}
             onClick={() => generate.mutate(undefined)}
           >
-            {generate.isPending
-              ? t('checklist.generating')
-              : data.collectibles.some((item) => item.origin === 'ai')
-                ? t('checklist.regenerate')
-                : t('checklist.generate')}
+            {generate.isPending ? t('checklist.generating') : t('checklist.regenerate')}
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {data.collectibles.length === 0 && (
+        <>
+          {data.generated ? (
+            <p className="note">{t('checklist.nothingFound')}</p>
+          ) : !aiConnected ? (
+            <p className="note">{t('checklist.needsAi')}</p>
+          ) : (
+            <button
+              type="button"
+              className="btn justify-self-start"
+              disabled={generate.isPending}
+              onClick={() => generate.mutate(undefined)}
+            >
+              {generate.isPending ? t('checklist.generating') : t('checklist.generate')}
+            </button>
+          )}
+        </>
+      )}
+
+      {(data.collectibles.length > 0 || data.missableAchievements.length > 0) && (
+        <div className="grid gap-2">
+          <h3 className="section-title">{t('checklist.forAchievements')}</h3>
+          <p className="note">{t('checklist.forAchievementsNote')}</p>
+          {data.missableAchievements.length > 0 && (
+            <div className="grid gap-1">
+              <h4 className="label">{t('checklist.missable')}</h4>
+              <ul className="grid gap-1 text-sm">
+                {data.missableAchievements.map((item) => (
+                  <li key={item.id}>
+                    <span className="font-medium">{item.name}</span>
+                    {item.description && <span className="text-muted"> — {item.description}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <ItemList items={forAchievements} onToggle={toggle} />
+        </div>
+      )}
+
+      {data.collectibles.length > 0 && (
+        <div className="grid gap-2">
+          <h3 className="section-title">{t('checklist.forCompletion')}</h3>
+          <p className="note">{t('checklist.forCompletionNote')}</p>
+          <ItemList items={forCompletion} onToggle={toggle} />
+        </div>
+      )}
 
       {data.collectibles.some((item) => item.origin === 'ai') && (
         <p className="note">{t('checklist.unofficial')}</p>

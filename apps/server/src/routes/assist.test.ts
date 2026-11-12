@@ -200,8 +200,9 @@ describe('acceptance flow: Ocarina of Time, 100% goal, hints', () => {
       isCollected: true,
     });
 
-    // In another language the list counts as not generated yet; asking again rewrites the
-    // descriptions the AI wrote, keeps the items and what was ticked, and adds nothing twice.
+    // In another language the list counts as not generated yet; asking again rewrites what
+    // the AI wrote, keeps what was ticked, adds nothing twice and drops what the new answer
+    // no longer lists (unless it was ticked), so no text is left in the old language.
     const english = await call<AreaChecklistResponse>(
       'GET',
       `/api/playthroughs/${runId}/checklist?locale=en`,
@@ -229,12 +230,9 @@ describe('acceptance flow: Ocarina of Time, 100% goal, hints', () => {
     expect(rewritten.body.generated).toBe(true);
     expect(
       rewritten.body.collectibles.map((item) => [item.id, item.description, item.isCollected]),
-    ).toEqual([
-      [firstItem, 'Climb the vines in the main room.', true],
-      [checklist.body.collectibles[1]?.id, 'In the basement.', false],
-    ]);
+    ).toEqual([[firstItem, 'Climb the vines in the main room.', true]]);
     const ticked = await call<AreaChecklistResponse>('GET', `/api/playthroughs/${runId}/checklist`);
-    expect(ticked.body.collectibles.map((item) => item.isCollected)).toEqual([true, false]);
+    expect(ticked.body.collectibles.map((item) => item.isCollected)).toEqual([true]);
 
     // --- Hint level 1, then level 2 ---
     t.ai.answers = [
@@ -673,6 +671,179 @@ describe('area checklist', () => {
     });
     const checkpointId = t.ctx.db.select().from(checkpoints).get()?.id;
     expect(rows.find((row) => row.id === 'a1')?.checkpointId).toBe(checkpointId);
+  });
+
+  it('tells apart what counts for achievements from what is only for the 100%', async () => {
+    t.ai.connected = true;
+    const { entryId, runId, gameId } = await addOcarina();
+    await call('PATCH', `/api/playthroughs/${runId}`, { goal: 'full_100' });
+    await call('PUT', `/api/library/${entryId}/map`, {
+      checkpoints: [
+        { name: 'Spring Meadows', aliases: [], isPointOfNoReturn: false, bossName: null },
+      ],
+    });
+    t.ctx.db
+      .insert(achievements)
+      .values({ id: 'mime', gameId, origin: 'manual', name: 'Mime Hunter', sortOrder: 1 })
+      .run();
+    t.ai.answers = [
+      {
+        collectibles: [
+          {
+            name: 'Pilha de Chroma (cachoeira)',
+            sourceName: 'Chroma pile (waterfall)',
+            description: 'Atrás de você, na cachoeira.',
+            category: 'Chroma',
+          },
+          {
+            name: 'Mímico (luta opcional)',
+            sourceName: 'Mime (optional fight)',
+            description: 'Fora do caminho principal.',
+            category: 'Chefe opcional',
+            achievement: 1,
+          },
+          {
+            name: 'Lanceram',
+            sourceName: 'Lanceram',
+            description: 'Arma do Gustave.',
+            category: 'Arma',
+            achievementName: 'All weapons',
+          },
+        ],
+        missableAchievements: [],
+      },
+    ];
+    const list = await call<AreaChecklistResponse>(
+      'POST',
+      `/api/playthroughs/${runId}/checklist/generate?locale=pt-BR`,
+    );
+    expect(
+      list.body.collectibles.map((item) => [item.name, item.achievementName, item.achievementId]),
+    ).toEqual([
+      ['Pilha de Chroma (cachoeira)', null, null],
+      ['Mímico (luta opcional)', 'Mime Hunter', 'mime'],
+      // Named from what the AI knows, even with no achievement row in the app.
+      ['Lanceram', 'All weapons', null],
+    ]);
+    const system = t.ai.requests.at(-1)?.system ?? '';
+    expect(system).toContain('"achievementName"');
+    expect(system).toContain('in Brazilian Portuguese: generic words');
+
+    const mime = list.body.collectibles[1]?.id ?? '';
+    await call('PUT', `/api/playthroughs/${runId}/collectibles/${mime}`, { isCollected: true });
+
+    // In English: rewritten, matched by the English source name, tick kept.
+    t.ai.answers = [
+      {
+        collectibles: [
+          {
+            name: 'Chroma pile (waterfall)',
+            sourceName: 'Chroma pile (waterfall)',
+            description: 'Behind you, at the waterfall.',
+            category: 'Chroma',
+          },
+          {
+            name: 'Mime (optional fight)',
+            sourceName: 'Mime (optional fight)',
+            description: 'Off the main path.',
+            category: 'Optional boss',
+            achievement: 1,
+          },
+          {
+            name: 'Lanceram',
+            sourceName: 'Lanceram',
+            description: 'Gustave weapon.',
+            category: 'Weapon',
+            achievementName: 'All weapons',
+          },
+        ],
+        missableAchievements: [],
+      },
+    ];
+    const english = await call<AreaChecklistResponse>(
+      'POST',
+      `/api/playthroughs/${runId}/checklist/generate?locale=en`,
+    );
+    expect(english.body.collectibles.map((item) => [item.id, item.name, item.isCollected])).toEqual(
+      list.body.collectibles.map((item, index) => [
+        item.id,
+        ['Chroma pile (waterfall)', 'Mime (optional fight)', 'Lanceram'][index],
+        item.id === mime,
+      ]),
+    );
+
+    // Back to Portuguese: the list is in English now, so it is offered for a rewrite, which
+    // comes from the cache — no new AI request — and puts the Portuguese text back.
+    const back = await call<AreaChecklistResponse>(
+      'GET',
+      `/api/playthroughs/${runId}/checklist?locale=pt-BR`,
+    );
+    expect(back.body.generated).toBe(false);
+    const requests = t.ai.requests.length;
+    const rewritten = await call<AreaChecklistResponse>(
+      'POST',
+      `/api/playthroughs/${runId}/checklist/generate?locale=pt-BR`,
+    );
+    expect(t.ai.requests).toHaveLength(requests);
+    expect(rewritten.body).toMatchObject({ generated: true, cached: true });
+    expect(rewritten.body.collectibles.map((item) => item.description)).toEqual([
+      'Atrás de você, na cachoeira.',
+      'Fora do caminho principal.',
+      'Arma do Gustave.',
+    ]);
+    expect(rewritten.body.collectibles.find((item) => item.id === mime)?.isCollected).toBe(true);
+  });
+});
+
+describe('area checklist with a Steam game never synced', () => {
+  it('reads the achievements first, so the AI can say what counts towards each', async () => {
+    t.ai.connected = true;
+    t.sources.steamConfigured = true;
+    t.sources.catalog = [
+      catalogGame({
+        externalId: '305152',
+        title: 'Clair Obscur: Expedition 33',
+        steamAppIds: ['1903340'],
+      }),
+    ];
+    t.sources.achievementSchemas = {
+      '1903340': [
+        {
+          apiName: 'MIME',
+          name: 'Mime Hunter',
+          description: 'Defeat every Mime.',
+          iconUrl: null,
+          isHidden: false,
+        },
+      ],
+    };
+    const added = await call<{ libraryEntryId: string }>('POST', '/api/library', {
+      status: 'playing',
+      game: { kind: 'igdb', externalId: '305152' },
+    });
+    const entryId = added.body.libraryEntryId;
+    const detail = (await call<GameDetailResponse>('GET', `/api/library/${entryId}`)).body;
+    const runId = detail.playthroughs[0]?.id ?? '';
+    await call('PATCH', `/api/playthroughs/${runId}`, { goal: 'all_achievements' });
+    await call('PUT', `/api/library/${entryId}/map`, {
+      checkpoints: [{ name: 'Act I', aliases: [], isPointOfNoReturn: false, bossName: null }],
+    });
+    t.ai.answers = [
+      {
+        collectibles: [
+          { name: 'Mímico', sourceName: 'Mime', description: 'Luta opcional.', achievement: 1 },
+        ],
+        missableAchievements: [],
+      },
+    ];
+
+    const list = await call<AreaChecklistResponse>(
+      'POST',
+      `/api/playthroughs/${runId}/checklist/generate`,
+    );
+    expect(t.ai.requests.at(-1)?.prompt).toContain('1. Mime Hunter — Defeat every Mime.');
+    expect(list.body.collectibles[0]?.achievementName).toBe('Mime Hunter');
+    expect(list.body.collectibles[0]?.achievementId).toBeTruthy();
   });
 });
 

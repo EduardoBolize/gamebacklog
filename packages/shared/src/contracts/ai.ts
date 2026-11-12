@@ -316,6 +316,10 @@ export const areaChecklistResponseSchema = z.object({
       description: z.string().nullable(),
       category: z.string().nullable(),
       isMissable: z.boolean(),
+      /** Achievement or trophy the item counts towards; null for "only for the 100%". */
+      achievementName: z.string().nullable(),
+      /** The app's own achievement row, when the game has achievement data. */
+      achievementId: z.string().nullable(),
       isCollected: z.boolean(),
       origin: contentOriginSchema,
     }),
@@ -325,7 +329,10 @@ export const areaChecklistResponseSchema = z.object({
   /** The next point of no return at or after this checkpoint, if any. */
   nextPointOfNoReturn: checkpointSchema.nullable(),
   sources: z.array(provenanceSchema),
-  /** False until the list for this area was generated. */
+  /**
+   * False until the list for this area was generated in the language asked for. A list written
+   * in another language can be rewritten; from the cache when it was asked for before.
+   */
   generated: z.boolean(),
   cached: z.boolean(),
 });

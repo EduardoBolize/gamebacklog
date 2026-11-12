@@ -36,10 +36,25 @@ export const collectibles = sqliteTable(
       .references(() => games.id, { onDelete: 'cascade' }),
     checkpointId: text('checkpoint_id').references(() => checkpoints.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
+    /**
+     * The item's name as the (English) sources write it. It stays the same whatever language
+     * the list is written in, so a rewritten list keeps the player's ticks.
+     */
+    sourceName: text('source_name'),
     description: text('description'),
     /** Free grouping, e.g. "Heart Piece" or "Gold Skulltula". */
     category: text('category'),
     isMissable: flag('is_missable'),
+    /**
+     * Achievement or trophy the item counts towards, as the game names it. Set even when the
+     * app has no achievement data for the game; `achievementId` links it when it does.
+     */
+    achievementName: text('achievement_name'),
+    // A plain ID, not a foreign key: achievements are replaced on sync and on import, and a
+    // dangling link only means the name is shown without the app's own achievement row.
+    achievementId: text('achievement_id'),
+    /** Language the AI wrote the description in, so a change of language can rewrite it. */
+    locale: text('locale'),
     sortOrder: integer('sort_order').notNull().default(0),
     origin: text('origin', { enum: CONTENT_ORIGINS }).notNull(),
     originUrl: text('origin_url'),
