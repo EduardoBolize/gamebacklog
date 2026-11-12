@@ -253,6 +253,10 @@ export const ptBR = {
     noSteam: 'Este jogo não está ligado a uma conta com conquistas (Steam, PlayStation ou Xbox).',
     empty: 'Nenhuma conquista carregada ainda. Sincronize para buscá-las.',
     emptyFilter: 'Nenhuma conquista neste filtro.',
+    retroLabel: 'Jogo no RetroAchievements (número ou endereço da página)',
+    retroHelp:
+      'Para jogos retrô: abra a página do jogo em retroachievements.org e cole o endereço aqui. Depois é só sincronizar.',
+    retroLink: 'Vincular ao RetroAchievements',
     privateProfile:
       'A lista foi carregada, mas a Steam não mostrou o que você já desbloqueou. Deixe "Detalhes dos jogos" como público nas configurações de privacidade do seu perfil.',
     globalPercent: '{percent}% dos jogadores',
@@ -812,6 +816,7 @@ export const ptBR = {
     ai_provider_error: 'A IA devolveu um erro. Tente de novo em instantes.',
     ai_no_key_needed: 'Este provedor não usa chave de API.',
     hint_level_locked: 'Abra o nível anterior primeiro.',
+    retro_game_invalid: 'Isso não é um número nem um endereço de jogo do RetroAchievements.',
     reference_game_required: 'Escolha um jogo de referência para esta lista.',
     no_chapter_map: 'Este jogo ainda não tem mapa de capítulos.',
     checkpoint_not_found: 'Essa etapa não está no mapa.',

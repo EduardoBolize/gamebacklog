@@ -133,7 +133,8 @@ export function registerSourceRoutes(app: FastifyInstance, ctx: AppContext): voi
     if (id === 'psn') return toTestResponse(await ctx.psn.healthCheck());
     if (id === 'xbox') return toTestResponse(await ctx.xbox.healthCheck());
     if (id === 'hltb') return toTestResponse(await ctx.hltb.healthCheck());
-    // RAWG and RetroAchievements are stored for a later phase; there is nothing to call yet.
+    if (id === 'retroachievements') return toTestResponse(await ctx.retro.healthCheck());
+    // RAWG is stored but not used yet; there is nothing to call.
     const configured = SECRETS_OF[id].every((name) => Boolean(secrets.get(name)));
     return { ok: configured, code: configured ? 'ok' : 'not_configured' };
   });

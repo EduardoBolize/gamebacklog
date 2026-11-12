@@ -1,5 +1,6 @@
 import {
   classifyAchievementRequestSchema,
+  linkRetroGameRequestSchema,
   setAchievementUnlockedRequestSchema,
 } from '@gamebacklog/shared';
 import type { FastifyInstance } from 'fastify';
@@ -7,6 +8,7 @@ import { z } from 'zod';
 import {
   classifyAchievement,
   getFunnel,
+  linkRetroGame,
   listAchievements,
   setAchievementUnlocked,
   syncAchievements,
@@ -40,6 +42,13 @@ export function registerAchievementRoutes(app: FastifyInstance, ctx: AppContext)
     );
     return OK;
   });
+  app.put('/api/library/:id/retroachievements', (request) =>
+    linkRetroGame(
+      ctx,
+      idParams.parse(request.params).id,
+      linkRetroGameRequestSchema.parse(request.body).game,
+    ),
+  );
   app.post('/api/library/:id/achievements/sync', (request) =>
     syncAchievements(ctx, idParams.parse(request.params).id),
   );

@@ -256,6 +256,10 @@ export const en: Messages = {
       'This game is not linked to an account with achievements (Steam, PlayStation or Xbox).',
     empty: 'No achievements loaded yet. Sync to fetch them.',
     emptyFilter: 'No achievements in this filter.',
+    retroLabel: 'Game on RetroAchievements (number or page address)',
+    retroHelp:
+      'For retro games: open the game page on retroachievements.org and paste its address here. Then just sync.',
+    retroLink: 'Link to RetroAchievements',
     privateProfile:
       'The list was loaded, but Steam did not show what you have unlocked. Set "Game details" to public in your profile privacy settings.',
     globalPercent: '{percent}% of players',
@@ -811,6 +815,7 @@ export const en: Messages = {
     ai_provider_error: 'The AI returned an error. Try again in a moment.',
     ai_no_key_needed: 'This provider does not use an API key.',
     hint_level_locked: 'Open the previous level first.',
+    retro_game_invalid: 'That is neither a number nor a RetroAchievements game address.',
     reference_game_required: 'Pick a reference game for this list.',
     no_chapter_map: 'This game has no chapter map yet.',
     checkpoint_not_found: 'That step is not on the map.',

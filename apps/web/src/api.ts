@@ -13,6 +13,7 @@ import {
   importPreviewResponseSchema,
   importResultResponseSchema,
   libraryListResponseSchema,
+  linkRetroGameResponseSchema,
   nudgeListResponseSchema,
   playthroughSchema,
   progressListResponseSchema,
@@ -127,6 +128,10 @@ export const api = {
     request('GET', `/api/playthroughs/${runId}/achievements`, achievementListResponseSchema),
   syncAchievements: (entryId: string) =>
     request('POST', `/api/library/${entryId}/achievements/sync`, achievementSyncResponseSchema),
+  linkRetroGame: (entryId: string, game: string) =>
+    request('PUT', `/api/library/${entryId}/retroachievements`, linkRetroGameResponseSchema, {
+      game,
+    }),
   classifyAchievement: (achievementId: string, body: ClassifyAchievementRequest) =>
     request('PATCH', `/api/achievements/${achievementId}`, anything, body),
   setAchievementUnlocked: (runId: string, achievementId: string, isUnlocked: boolean) =>

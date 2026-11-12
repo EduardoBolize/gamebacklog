@@ -64,6 +64,16 @@ export type ClassifyAchievementRequest = z.infer<typeof classifyAchievementReque
 export const setAchievementUnlockedRequestSchema = z.object({ isUnlocked: z.boolean() });
 export type SetAchievementUnlockedRequest = z.infer<typeof setAchievementUnlockedRequestSchema>;
 
+/** The game's ID on RetroAchievements, or the address of its page there. */
+export const linkRetroGameRequestSchema = z.object({ game: z.string().trim().min(1).max(200) });
+
+export const linkRetroGameResponseSchema = z.object({
+  gameId: z.string(),
+  title: z.string(),
+  consoleName: z.string().nullable(),
+});
+export type LinkRetroGameResponse = z.infer<typeof linkRetroGameResponseSchema>;
+
 export const achievementSyncResponseSchema = z.object({
   total: z.number().int(),
   unlocked: z.number().int(),

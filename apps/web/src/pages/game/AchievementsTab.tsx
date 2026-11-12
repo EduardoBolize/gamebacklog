@@ -1,6 +1,6 @@
 import type { Achievement, Playthrough } from '@gamebacklog/shared';
 import { useState } from 'react';
-import { api, useAchievements, useApiMutation } from '../../api.ts';
+import { api, useAchievements, useApiMutation, useSources } from '../../api.ts';
 import { ErrorNote, Loading, PercentBar } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import { AreaChecklist } from './AreaChecklist.tsx';
@@ -107,6 +107,46 @@ function AchievementRow({ item, runId }: { item: Achievement; runId: string }) {
   );
 }
 
+/**
+ * For retro games: ties the game to its page on RetroAchievements, so its achievements can be
+ * synced like any other. Only offered when RetroAchievements is connected.
+ */
+function RetroLink({ entryId }: { entryId: string }) {
+  const { t } = useI18n();
+  const sources = useSources();
+  const [game, setGame] = useState('');
+  const link = useApiMutation(() => api.linkRetroGame(entryId, game.trim()));
+  const connected = sources.data?.items.some(
+    (item) => item.id === 'retroachievements' && item.configured,
+  );
+  if (!connected) return null;
+
+  return (
+    <form
+      className="grid max-w-prose gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (game.trim()) link.mutate(undefined);
+      }}
+    >
+      <label>
+        <span className="label">{t('achievements.retroLabel')}</span>
+        <input
+          className="field"
+          placeholder="https://retroachievements.org/game/1"
+          value={game}
+          onChange={(event) => setGame(event.target.value)}
+        />
+      </label>
+      <p className="note">{t('achievements.retroHelp')}</p>
+      <button type="submit" className="btn justify-self-start" disabled={link.isPending}>
+        {t('achievements.retroLink')}
+      </button>
+      <ErrorNote error={link.error} />
+    </form>
+  );
+}
+
 export function AchievementsTab({
   entryId,
   run,
@@ -133,6 +173,7 @@ export function AchievementsTab({
       <div className="grid gap-6">
         <AreaChecklist key={run.id} run={run} />
         <p className="text-muted">{t('achievements.noSteam')}</p>
+        <RetroLink entryId={entryId} />
       </div>
     );
   }

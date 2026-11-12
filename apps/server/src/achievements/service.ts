@@ -20,6 +20,7 @@ import { badRequest, conflict, notFound } from '../errors.ts';
 import { listPlaythroughs, requireEntry, requirePlaythrough } from '../library/service.ts';
 import { getEffectiveTimes } from '../library/times.ts';
 import { computeFunnel } from './funnel.ts';
+import { parseRetroGameId } from '../sources/retroachievements/index.ts';
 import { looksLikeNewGamePlus, looksLikeStory } from './heuristics.ts';
 
 type AchievementRow = typeof achievements.$inferSelect;
@@ -85,6 +86,9 @@ interface FetchedAchievement {
   globalPercent: number | null;
   isUnlocked: boolean;
   unlockedAt: Date | null;
+  /** Set when the account itself classifies the achievement; otherwise the names are guessed from. */
+  isStory?: boolean;
+  isMissable?: boolean;
 }
 
 interface FetchedList {
@@ -146,10 +150,28 @@ async function fetchFromConsole(
   };
 }
 
-/** Extra accounts (added by later features) plug in here. */
-export type AchievementFetcher = (ctx: AppContext, externalId: string) => Promise<FetchedList>;
-export const EXTRA_FETCHERS: Partial<Record<AchievementSyncSource, AchievementFetcher>> = {};
-export type { FetchedList };
+async function fetchFromRetro(ctx: AppContext, gameId: string): Promise<FetchedList | null> {
+  const game = await ctx.retro.getGame(gameId);
+  if (!game) return null;
+  return {
+    origin: 'retroachievements',
+    items: game.data.achievements.map((item) => ({
+      externalId: item.id,
+      name: item.name,
+      description: item.description,
+      iconUrl: item.iconUrl,
+      isHidden: false,
+      globalPercent: item.globalPercent,
+      isUnlocked: item.isUnlocked,
+      unlockedAt: item.unlockedAt ? new Date(item.unlockedAt) : null,
+      isStory: item.isStory,
+      isMissable: item.isMissable,
+    })),
+    playerDataAvailable: true,
+    url: game.data.url,
+    fetchedAt: game.fetchedAt,
+  };
+}
 
 /**
  * Fetches a game's achievement or trophy list, the global percentages and the player's unlocks
@@ -165,15 +187,12 @@ export async function syncAchievements(
   const link = achievementLinkFor(db, entry);
   if (!link) throw conflict('no_steam_app', 'This game is not linked to an account');
 
-  const extra = EXTRA_FETCHERS[link.source];
   const fetched =
     link.source === 'steam'
       ? await fetchFromSteam(ctx, link.externalId)
-      : link.source === 'psn' || link.source === 'xbox'
-        ? await fetchFromConsole(ctx, link.source, link.externalId)
-        : extra
-          ? await extra(ctx, link.externalId)
-          : null;
+      : link.source === 'retroachievements'
+        ? await fetchFromRetro(ctx, link.externalId)
+        : await fetchFromConsole(ctx, link.source, link.externalId);
   if (!fetched) throw conflict('no_steam_app', 'This game is not linked to an account');
   const { origin, fetchedAt } = fetched;
 
@@ -204,7 +223,9 @@ export async function syncAchievements(
         known?.classifiedBy === 'user'
           ? {}
           : {
-              isStory: looksLikeStory(definition),
+              // What the account says wins over a guess from the name.
+              isStory: definition.isStory ?? looksLikeStory(definition),
+              ...(definition.isMissable === undefined ? {} : { isMissable: definition.isMissable }),
               isNgPlus: looksLikeNewGamePlus(definition),
               classifiedBy: 'heuristic' as const,
             };
@@ -426,4 +447,46 @@ export function listSteamLinkedEntries(db: AppDatabase) {
       and(eq(gameExternalIds.gameId, libraryEntries.gameId), eq(gameExternalIds.source, 'steam')),
     )
     .all();
+}
+
+/**
+ * Ties a game to its page on RetroAchievements. The site has no search by name in its API, so
+ * the user points at the game (ID or page address) and the app checks that it exists.
+ */
+export async function linkRetroGame(
+  ctx: AppContext,
+  entryId: string,
+  input: string,
+): Promise<{ gameId: string; title: string; consoleName: string | null }> {
+  const entry = requireEntry(ctx.db, entryId);
+  const gameId = parseRetroGameId(input);
+  if (!gameId) throw badRequest('retro_game_invalid', 'Not a RetroAchievements game ID or address');
+  const found = await ctx.retro.getGame(gameId);
+  if (!found) throw notFound('RetroAchievements game');
+
+  ctx.db.transaction((tx) => {
+    // One RetroAchievements game per library game: a new link replaces the old one.
+    tx.delete(gameExternalIds)
+      .where(
+        and(
+          eq(gameExternalIds.gameId, entry.gameId),
+          eq(gameExternalIds.source, 'retroachievements'),
+        ),
+      )
+      .run();
+    tx.insert(gameExternalIds)
+      .values({
+        gameId: entry.gameId,
+        source: 'retroachievements',
+        externalId: gameId,
+        url: found.data.url,
+        matchedBy: 'user',
+      })
+      .onConflictDoUpdate({
+        target: [gameExternalIds.source, gameExternalIds.externalId],
+        set: { gameId: entry.gameId, url: found.data.url, matchedBy: 'user' },
+      })
+      .run();
+  });
+  return { gameId, title: found.data.title, consoleName: found.data.consoleName };
 }

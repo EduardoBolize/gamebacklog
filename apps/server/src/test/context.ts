@@ -19,6 +19,7 @@ import type {
   SteamPlayerAchievement,
   SteamSource,
 } from '../sources/types.ts';
+import type { RetroGame, RetroSource } from '../sources/retroachievements/index.ts';
 import type { WebSearchResult, WebSearchSource } from '../sources/web-search/index.ts';
 import type { WikiSection } from '../sources/wiki/html.ts';
 import type { WikiImage, WikiSite, WikiSource } from '../sources/wiki/index.ts';
@@ -73,6 +74,8 @@ export interface FakeSources {
       achievements: Record<string, ConsoleAchievement[]>;
     }
   >;
+  /** RetroAchievements: whether it is connected, and the games it knows by ID. */
+  retro: { configured: boolean; games: Record<string, RetroGame> };
   /** Hosts that answer as a wiki, e.g. `zelda.fandom.com`. Any other host is "not a wiki". */
   wikiHosts: string[];
   /** Page title → sections. Search matches titles and text against the query words. */
@@ -321,6 +324,30 @@ function fakeConsole(state: FakeSources, id: 'psn' | 'xbox'): ConsoleSource {
   };
 }
 
+function fakeRetro(state: FakeSources): RetroSource {
+  return {
+    ...base,
+    id: 'retroachievements',
+    displayName: 'RetroAchievements',
+    requiresCredentials: true,
+    isConfigured: () => Promise.resolve(state.retro.configured),
+    healthCheck: () =>
+      Promise.resolve(
+        state.retro.configured
+          ? { status: 'ok' as const, message: 'ok' }
+          : { status: 'not_configured' as const, message: 'not configured' },
+      ),
+    async getGame(gameId) {
+      await Promise.resolve();
+      if (!state.retro.configured) {
+        throw new SourceError('retroachievements', 'not_configured', 'not configured');
+      }
+      const data = state.retro.games[gameId];
+      return data ? { data, fetchedAt: new Date(FETCHED_AT), fromCache: false } : null;
+    },
+  };
+}
+
 /** Scripted AI: tests push the answers it should give and read back what it was asked. */
 export interface FakeAi {
   /** When false, the app behaves as if no AI was connected. */
@@ -389,6 +416,7 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
       psn: { configured: true, games: [], achievements: {} },
       xbox: { configured: true, games: [], achievements: {} },
     },
+    retro: { configured: true, games: {} },
     wikiHosts: [],
     wikiPages: {},
     wikiImages: [],
@@ -410,6 +438,7 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     steam: fakeSteam(sources, () => getSetting(handle.db, SETTINGS.steamId)),
     psn: fakeConsole(sources, 'psn'),
     xbox: fakeConsole(sources, 'xbox'),
+    retro: fakeRetro(sources),
     wiki: fakeWiki(sources),
     webSearch: fakeWebSearch(sources),
     ai: {

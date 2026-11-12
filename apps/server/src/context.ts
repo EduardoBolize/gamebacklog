@@ -6,6 +6,10 @@ import { SourceCache } from './sources/cache.ts';
 import { createHltbSource } from './sources/hltb/index.ts';
 import { createIgdbSource } from './sources/igdb/index.ts';
 import { createPsnSource } from './sources/psn/index.ts';
+import {
+  createRetroAchievementsSource,
+  type RetroSource,
+} from './sources/retroachievements/index.ts';
 import { createSteamSource } from './sources/steam/index.ts';
 import type {
   CatalogSource,
@@ -25,6 +29,7 @@ export interface AppContext {
   steam: SteamSource;
   psn: ConsoleSource;
   xbox: ConsoleSource;
+  retro: RetroSource;
   hltb: GameTimesSource;
   wiki: WikiSource;
   webSearch: WebSearchSource;
@@ -57,6 +62,7 @@ export function createContext(options: {
     }),
     psn: createPsnSource({ secrets, cache }),
     xbox: createXboxSource({ secrets, cache }),
+    retro: createRetroAchievementsSource({ secrets, cache }),
     hltb: createHltbSource({ cache, isEnabled: () => getSetting(db, SETTINGS.hltbEnabled) }),
     wiki: createWikiSource({ cache }),
     webSearch: createWebSearchSource({
