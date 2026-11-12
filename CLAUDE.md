@@ -117,9 +117,22 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   (se configurada), depois a Wikipedia; o usuário pode trocar. A escolha fica em `settings`.
 - **Ponto sem volta:** avançar para uma etapa marcada assim devolve um aviso em vez de gravar; só
   grava com `confirmPointOfNoReturn`.
-- **Formato de export na versão 4.** A 2 trouxe `checkpoints.bossName`; a 3 só marca que PSN e
+- **Formato de export na versão 5.** A 2 trouxe `checkpoints.bossName`; a 3 só marca que PSN e
   Xbox passaram a ser origens válidas; a 4 trouxe `checkpoints.leadsTo`, `checkpoints.requirement`
-  e `playthroughs.completedCheckpointIds`. Conversões em `EXPORT_MIGRATIONS`.
+  e `playthroughs.completedCheckpointIds`; a 5, `collectibles.sourceName`, `achievementName`,
+  `achievementId` e `locale`. Conversões em `EXPORT_MIGRATIONS`.
+- **Checklist por área em duas listas** (`area-checklist.v3`): cada item diz a conquista ou o
+  troféu para o qual conta (`achievementName`, e `achievementId` quando o app tem a conquista).
+  Na tela: "Para conquistas" e "Para o 100%". Antes de pedir a lista, um jogo ligado a uma conta
+  e nunca sincronizado tem as conquistas sincronizadas; sem conta nenhuma, a página de troféus da
+  wiki entra no contexto. A lista de conquistas faz parte da chave de cache.
+- **Idioma da lista guardada:** cada item sabe em que idioma foi escrito (`locale`); a lista só
+  conta como gerada quando a tela está nesse idioma. Trocar de idioma reaplica a resposta
+  (do cache, se já foi pedida naquele idioma) e casa os itens por `sourceName` (o nome nas
+  fontes em inglês, igual em qualquer idioma), mantendo o que foi marcado. Itens da IA que a nova
+  resposta não lista somem, a não ser que alguém já os tenha marcado.
+- `collectibles.achievementId` é um ID solto, não chave estrangeira: as conquistas são
+  substituídas na sincronização e na importação.
 - **"Mapa de capítulos" virou "Rota do jogo"** na interface (o código continua `chapter_maps` e
   `checkpoints`). Mapa, para o usuário, é o mapa da wiki (aba Mapa). A rota tem ramificações:
   `leadsTo` aponta os IDs das áreas alcançáveis (vazio = a próxima pela posição) e `requirement`
