@@ -163,6 +163,22 @@ Sim, para tudo o que já está salvo: biblioteca, diário, reviews, estatística
 a partir da sua biblioteca. Buscar jogos novos, sincronizar contas e pedir dicas precisam de
 internet.
 
+## Tecnologias
+
+O código é todo em TypeScript (por isso o GitHub mostra quase só essa linguagem: os
+componentes React são arquivos `.tsx`, que contam como TypeScript).
+
+| Parte              | O que usa                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Interface          | React 19, Vite, Tailwind CSS 4, TanStack Query                                                                |
+| Servidor           | Node.js 22+ (executa TypeScript direto), Fastify 5                                                            |
+| Dados              | SQLite com Drizzle ORM e better-sqlite3; chaves no cofre do SO                                                |
+| Contratos          | Zod, compartilhado entre interface e servidor                                                                 |
+| IA (opcional)      | CLIs (Claude Code, Codex, Gemini), Vercel AI SDK, Ollama/LM Studio                                            |
+| Fontes de dados    | IGDB, Steam, PlayStation, Xbox (OpenXBL), RetroAchievements, HowLongToBeat, wikis MediaWiki (Fandom, wiki.gg) |
+| Testes e qualidade | Vitest, Playwright, ESLint, Prettier                                                                          |
+| Organização        | Monorepo com pnpm workspaces                                                                                  |
+
 ## Desenvolvimento
 
 | Comando                                        | O que faz                                                             |

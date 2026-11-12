@@ -160,6 +160,22 @@ Yes, for everything already saved: library, diary, reviews, statistics, and reco
 from your own library. Searching for new games, syncing accounts and asking for hints need the
 internet.
 
+## Technologies
+
+The code is all TypeScript (which is why GitHub shows almost only that language: the React
+components are `.tsx` files, counted as TypeScript).
+
+| Part              | What it uses                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| Interface         | React 19, Vite, Tailwind CSS 4, TanStack Query                                                                |
+| Server            | Node.js 22+ (runs TypeScript directly), Fastify 5                                                             |
+| Data              | SQLite with Drizzle ORM and better-sqlite3; keys in the OS keychain                                           |
+| Contracts         | Zod, shared by interface and server                                                                           |
+| AI (optional)     | CLIs (Claude Code, Codex, Gemini), Vercel AI SDK, Ollama/LM Studio                                            |
+| Data sources      | IGDB, Steam, PlayStation, Xbox (OpenXBL), RetroAchievements, HowLongToBeat, MediaWiki wikis (Fandom, wiki.gg) |
+| Tests and quality | Vitest, Playwright, ESLint, Prettier                                                                          |
+| Layout            | Monorepo with pnpm workspaces                                                                                 |
+
 ## Development
 
 | Command                                        | What it does                                              |
