@@ -1,28 +1,34 @@
-import type {
-  AddGameRequest,
-  AddGameResponse,
-  CatalogSearchResponse,
-  CreatePlaythroughRequest,
-  GameDetailResponse,
-  LibraryItem,
-  LibraryStatus,
-  Playthrough,
-  PlaythroughGoal,
-  PlaythroughStatus,
-  UpdateLibraryEntryRequest,
-  UpdatePlaythroughRequest,
+import {
+  ACHIEVEMENT_SYNC_SOURCES,
+  type AchievementSyncSource,
+  type AddGameRequest,
+  type AddGameResponse,
+  type CatalogSearchResponse,
+  type CreatePlaythroughRequest,
+  type GameDetailResponse,
+  type LibraryItem,
+  type LibraryStatus,
+  type Playthrough,
+  type PlaythroughGoal,
+  type PlaythroughStatus,
+  type UpdateLibraryEntryRequest,
+  type UpdatePlaythroughRequest,
 } from '@gamebacklog/shared';
-import { and, desc, eq, inArray, max } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, max } from 'drizzle-orm';
 import { localDate, type AppContext } from '../context.ts';
 import type { AppDatabase } from '../db/client.ts';
 import {
+  achievements,
   gameExternalIds,
   gameTimes,
   games,
   libraryEntries,
   playthroughs,
+  progressEvents,
   reviews,
+  sessions,
 } from '../db/schema/index.ts';
+import { goalMinutes } from '../stats/service.ts';
 import { conflict, notFound } from '../errors.ts';
 import type { CatalogGameData } from '../sources/types.ts';
 import { pickEffectiveTimes, queueTimesRefresh } from './times.ts';
@@ -244,6 +250,28 @@ export async function addGame(ctx: AppContext, request: AddGameRequest): Promise
   return { libraryEntryId: result.libraryEntryId, created: result.created };
 }
 
+/** Groups rows by a key, keeping their order. */
+function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    const list = map.get(key);
+    if (list) list.push(row);
+    else map.set(key, [row]);
+  }
+  return map;
+}
+
+/** Keeps the latest instant per key. */
+function latestBy(rows: { key: string; at: Date }[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const row of rows) map.set(row.key, Math.max(map.get(row.key) ?? 0, row.at.getTime()));
+  return map;
+}
+
+const FINISHED: LibraryStatus[] = ['completed', 'completed_100'];
+const SYNC_SOURCES = new Set<string>(ACHIEVEMENT_SYNC_SOURCES);
+
 export function listLibrary(db: AppDatabase): LibraryItem[] {
   const rows = db
     .select({ entry: libraryEntries, game: games })
@@ -260,29 +288,97 @@ export function listLibrary(db: AppDatabase): LibraryItem[] {
       .all()
       .map((row) => [row.entryId, row.score]),
   );
-  const timesByGame = new Map<string, (typeof gameTimes.$inferSelect)[]>();
-  for (const row of db.select().from(gameTimes).all()) {
-    timesByGame.set(row.gameId, [...(timesByGame.get(row.gameId) ?? []), row]);
-  }
+  const timesByGame = groupBy(db.select().from(gameTimes).all(), (row) => row.gameId);
+  const runRows = db
+    .select()
+    .from(playthroughs)
+    .orderBy(playthroughs.number, playthroughs.id)
+    .all();
+  const runsByEntry = groupBy(runRows, (row) => row.libraryEntryId);
+  const sessionRows = db
+    .select({
+      key: sessions.libraryEntryId,
+      at: sessions.startedAt,
+      minutes: sessions.durationMinutes,
+    })
+    .from(sessions)
+    .all();
+  const diaryMinutes = new Map<string, number>();
+  for (const row of sessionRows)
+    diaryMinutes.set(row.key, (diaryMinutes.get(row.key) ?? 0) + row.minutes);
+  const lastSession = latestBy(sessionRows);
+  const entryOfRun = new Map(runRows.map((run) => [run.id, run.libraryEntryId]));
+  const lastReport = latestBy(
+    db
+      .select({ run: progressEvents.playthroughId, at: progressEvents.occurredAt })
+      .from(progressEvents)
+      .all()
+      .flatMap((row) => {
+        const key = entryOfRun.get(row.run);
+        return key ? [{ key, at: row.at }] : [];
+      }),
+  );
+  const achievementCounts = new Map(
+    db
+      .select({ gameId: achievements.gameId, total: count() })
+      .from(achievements)
+      .groupBy(achievements.gameId)
+      .all()
+      .map((row) => [row.gameId, row.total]),
+  );
+  const accountsByGame = groupBy(
+    db
+      .select({ gameId: gameExternalIds.gameId, source: gameExternalIds.source })
+      .from(gameExternalIds)
+      .orderBy(gameExternalIds.source)
+      .all()
+      .filter((row) => SYNC_SOURCES.has(row.source)),
+    (row) => row.gameId,
+  );
 
-  return rows.map(({ entry, game }) => ({
-    id: entry.id,
-    status: entry.status,
-    platform: entry.platform,
-    isFavorite: entry.isFavorite,
-    tags: entry.tags,
-    addedAt: entry.createdAt.toISOString(),
-    game: {
-      id: game.id,
-      title: game.title,
-      coverUrl: game.coverUrl,
-      releaseYear: game.releaseYear,
-      platforms: game.platforms,
-      genres: game.genres,
-    },
-    score: scores.get(entry.id) ?? null,
-    mainMinutes: pickEffectiveTimes(timesByGame.get(game.id) ?? [])?.mainMinutes ?? null,
-  }));
+  return rows.map(({ entry, game }) => {
+    const times = pickEffectiveTimes(timesByGame.get(game.id) ?? []);
+    const runs = runsByEntry.get(entry.id) ?? [];
+    const runMinutes = runs.reduce((sum, run) => sum + (run.playtimeMinutes ?? 0), 0);
+    // Hours on the runs are the fuller record; the diary fills in when they have none.
+    const playedMinutes = runMinutes > 0 ? runMinutes : (diaryMinutes.get(entry.id) ?? 0);
+    const lastPlayed = Math.max(lastSession.get(entry.id) ?? 0, lastReport.get(entry.id) ?? 0);
+
+    let progressPercent: number | null = null;
+    if (FINISHED.includes(entry.status)) progressPercent = 100;
+    else if (entry.status === 'playing') {
+      const run = runs.findLast((candidate) => candidate.status === 'playing') ?? runs.at(-1);
+      const goal = goalMinutes(times, run?.goal ?? 'finish');
+      const played = run?.playtimeMinutes ?? playedMinutes;
+      if (goal && goal > 0) progressPercent = Math.min(99, Math.round((played / goal) * 100));
+    }
+
+    return {
+      id: entry.id,
+      status: entry.status,
+      platform: entry.platform,
+      isFavorite: entry.isFavorite,
+      tags: entry.tags,
+      addedAt: entry.createdAt.toISOString(),
+      game: {
+        id: game.id,
+        title: game.title,
+        coverUrl: game.coverUrl,
+        releaseYear: game.releaseYear,
+        platforms: game.platforms,
+        genres: game.genres,
+      },
+      score: scores.get(entry.id) ?? null,
+      mainMinutes: times?.mainMinutes ?? null,
+      playedMinutes,
+      lastPlayedAt: lastPlayed > 0 ? new Date(lastPlayed).toISOString() : null,
+      progressPercent,
+      achievementCount: achievementCounts.get(game.id) ?? 0,
+      accounts: (accountsByGame.get(game.id) ?? []).map(
+        (row) => row.source as AchievementSyncSource,
+      ),
+    };
+  });
 }
 
 export function requireEntry(db: Queryable, entryId: string) {

@@ -4,7 +4,7 @@ import {
   type GameDetailResponse,
 } from '@gamebacklog/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { games, sessions } from '../db/schema/index.ts';
+import { achievements, games, sessions } from '../db/schema/index.ts';
 import { catalogGame, createTestApp, flushBackgroundWork, type TestApp } from '../test/context.ts';
 
 let t: TestApp;
@@ -223,6 +223,44 @@ describe('library list', () => {
       score: 9.5,
       mainMinutes: 1620,
       game: { title: 'Hollow Knight', releaseYear: 2017 },
+    });
+  });
+
+  it('says how much was played, when, how far along and which accounts the game is on', async () => {
+    const hollow = await addIgdbGame('14593', 'playing', 'PC');
+    const zelda = await addIgdbGame('1029', 'completed');
+    await flushBackgroundWork();
+    const runId = (await detail(hollow)).playthroughs[0]?.id;
+    await call('POST', `/api/library/${hollow}/sessions`, {
+      playthroughId: runId,
+      startedAt: '2026-11-09T20:00:00.000Z',
+      durationMinutes: 810,
+      note: 'Greenpath',
+    });
+    const gameId = (await detail(hollow)).game.id;
+    t.ctx.db
+      .insert(achievements)
+      .values([
+        { gameId, origin: 'manual', name: 'Falsehood', sortOrder: 1 },
+        { gameId, origin: 'manual', name: 'Protector', sortOrder: 2 },
+      ])
+      .run();
+
+    const { items } = libraryListResponseSchema.parse((await call('GET', '/api/library')).body);
+    expect(items.find((item) => item.id === hollow)).toMatchObject({
+      playedMinutes: 810,
+      lastPlayedAt: '2026-11-09T20:00:00.000Z',
+      // Half of the 27h main story; never 100 while still playing.
+      progressPercent: 50,
+      achievementCount: 2,
+      accounts: ['steam'],
+    });
+    expect(items.find((item) => item.id === zelda)).toMatchObject({
+      playedMinutes: 0,
+      lastPlayedAt: null,
+      progressPercent: 100,
+      achievementCount: 0,
+      accounts: [],
     });
   });
 });

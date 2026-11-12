@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  achievementSyncSourceSchema,
   dataOriginSchema,
   externalIdSourceSchema,
   gameTimeOriginSchema,
@@ -52,6 +53,19 @@ export const libraryItemSchema = z.object({
   score: z.number().nullable(),
   /** Main-story time to beat, for sorting. */
   mainMinutes: z.number().nullable(),
+  /** Hours on the runs, or the diary when the runs have none. */
+  playedMinutes: z.number().int().nonnegative(),
+  /** Latest diary session or "where am I?" report. */
+  lastPlayedAt: isoDateTimeSchema.nullable(),
+  /**
+   * How far along the game is: hours against the time to beat of the current run's goal
+   * (never 100 while playing), 100 once finished, null when unknown.
+   */
+  progressPercent: z.number().int().min(0).max(100).nullable(),
+  /** Achievements the app knows for the game (synced or typed). */
+  achievementCount: z.number().int().nonnegative(),
+  /** Accounts the game is linked to (where it was imported from). */
+  accounts: z.array(achievementSyncSourceSchema),
 });
 export type LibraryItem = z.infer<typeof libraryItemSchema>;
 
