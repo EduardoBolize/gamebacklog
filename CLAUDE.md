@@ -117,9 +117,34 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   (se configurada), depois a Wikipedia; o usuário pode trocar. A escolha fica em `settings`.
 - **Ponto sem volta:** avançar para uma etapa marcada assim devolve um aviso em vez de gravar; só
   grava com `confirmPointOfNoReturn`.
-- **Formato de export na versão 3.** A 2 trouxe `checkpoints.bossName`; a 3 só marca que PSN e
-  Xbox passaram a ser origens válidas (arquivos antigos não mudam). Conversões em
-  `EXPORT_MIGRATIONS`.
+- **Formato de export na versão 4.** A 2 trouxe `checkpoints.bossName`; a 3 só marca que PSN e
+  Xbox passaram a ser origens válidas; a 4 trouxe `checkpoints.leadsTo`, `checkpoints.requirement`
+  e `playthroughs.completedCheckpointIds`. Conversões em `EXPORT_MIGRATIONS`.
+- **"Mapa de capítulos" virou "Rota do jogo"** na interface (o código continua `chapter_maps` e
+  `checkpoints`). Mapa, para o usuário, é o mapa da wiki (aba Mapa). A rota tem ramificações:
+  `leadsTo` aponta os IDs das áreas alcançáveis (vazio = a próxima pela posição) e `requirement`
+  diz o que abre o caminho. Cada jogatina guarda as áreas terminadas em `completedCheckpointIds`.
+  Refazer a rota mantém posição e áreas terminadas pelo nome.
+- **O prompt da rota** (`chapter-map.v3`) usa a wiki primeiro e completa com o que é bem conhecido
+  do jogo quando a wiki não lista as áreas (sem inventar), e pede ao menos um nome em português
+  por área quando a interface está em pt-BR, para o "Onde estou?" casar sem IA.
+- **"Onde estou?" lê várias áreas na mesma frase** (`readProgressLocally`): a marcada com
+  "estou/agora/cheguei…" é a atual, ou a última citada; as outras viram terminadas. Só vai para a
+  IA (`resolve-checkpoint.v2`, que também devolve `completed`) quando nada casa. Se não deu para
+  posicionar, a resposta diz por quê (`notPlaced`, `aiError`).
+- **Caminhos a partir daqui** (`assist/paths.ts`): as opções saem da rota, sem IA. A leitura da IA
+  (`next-paths.v1`: como chegar, o que se perde em cada caminho, o que fazer antes de sair) só
+  roda a pedido ou, na tela, logo depois que a jogatina muda de lugar. Os avisos apontam para as
+  conquistas pelo número na lista; a aba de conquistas mostra a leitura guardada, nunca chama a IA.
+- **Mapas das wikis** (`assist/maps.ts`, `sources/wiki/interactive-map.ts`): até 3 wikis por jogo
+  (a escolhida, depois palpites no wiki.gg e na Fandom, inclusive com algarismo no lugar do
+  romano: "darksouls2"), deduplicadas pelo endereço dos artigos. Lê os mapas interativos dos dois
+  formatos abertos: Fandom Interactive Maps (`interactivemap`) e a extensão DataMaps do wiki.gg
+  (`datamap`, marcadores pela API `queryDataMap`). Tudo vira posições de 0 a 1 sobre a imagem e é
+  desenhado pela aba Mapa sem biblioteca (`InteractiveMapView`). Marcadores com o nome da área
+  atual e das próximas são destacados. Fextralife e Map Genie não têm API aberta: não são usados.
+- **IA sem cota** devolve o código `ai_usage_limit` (CLI: 429 ou texto de limite; API: 429), com
+  mensagem que sugere esperar ou trocar o modelo em Ajustes › IA.
 - **PSN é não oficial e opcional** (`sources/psn/`): usa os endereços do app oficial da
   PlayStation com o token NPSSO que o usuário copia da própria sessão. Só leitura. O token e o
   refresh token ficam no cofre; a tela de ajustes e o README avisam que foge dos termos da Sony.
@@ -201,8 +226,9 @@ apps/
       stats/                 painel de estatísticas e avisos de jogo parado
       recommendations/       profile.ts (perfil de gosto), similarity.ts (parecidos e formato
                              das conquistas), service.ts (as listas e a explicação por IA)
-      assist/                wiki do jogo, mapa de capítulos, "onde estou", dicas, checklist de
-                             100%, resumo e estimativa de abandono
+      assist/                wiki do jogo, rota (chapter-map), "onde estou", caminhos a partir
+                             daqui (paths), mapas das wikis (maps), dicas, checklist de 100%,
+                             resumo e estimativa de abandono
       db/                    client, migrate, seed, cli/, schema/
       test/                  helpers de teste: banco em memória, fetch falso, app com fontes falsas
   web/

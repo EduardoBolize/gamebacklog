@@ -24,7 +24,11 @@ switched to English in Settings.
   hours are left.
 - **With AI (optional)**: chapter map, free-text "Where am I?", hints on four spoiler-safe
   levels, collectibles and missables per area, with a warning before a point of no return.
-- **Maps and videos** of the area you are in, from the game's wiki.
+- **Wiki maps**: the game's interactive map (from Fandom and wiki.gg wikis, such as Elden Ring's),
+  with search, filters and "you are here", plus map images and videos of the area.
+- **Game route**: the areas, the paths out of each and what opens them. "Where am I?" understands
+  "I finished X and Y, I'm at Z" and, with AI, warns what each path could make you miss
+  (achievements, items, characters).
 - **Recommendations** computed on your computer: what to play now, similar to a game, similar
   to a platinum, from your favourite genre.
 - **Statistics**: hours by platform, genre and game, games finished per year, backlog size in

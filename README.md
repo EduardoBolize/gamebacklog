@@ -24,7 +24,11 @@ dados ficam num arquivo SQLite na sua máquina.
 - **Com IA (opcional)**: mapa de capítulos, "Onde estou?" em texto livre, dicas em quatro
   níveis sem spoiler, lista de colecionáveis e perdíveis por área, com aviso antes de um ponto
   sem volta.
-- **Mapas e vídeos** da área em que você está, vindos da wiki do jogo.
+- **Mapas da wiki**: o mapa interativo do jogo (das wikis da Fandom e do wiki.gg, como o do
+  Elden Ring), com busca, filtros e "você está aqui", mais as imagens de mapa e vídeos da área.
+- **Rota do jogo**: as áreas, com os caminhos de cada uma e o que abre cada caminho. "Onde estou?"
+  entende frases como "terminei X e Y, estou em Z" e, com IA, avisa o que você pode perder em
+  cada caminho (conquistas, itens, personagens).
 - **Recomendações** calculadas no seu computador: o que jogar agora, parecidos com um jogo,
   parecidos com uma platina, do seu gênero favorito.
 - **Estatísticas**: horas por plataforma, gênero e jogo, zerados por ano, tamanho do backlog
