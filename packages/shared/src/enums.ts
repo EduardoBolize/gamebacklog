@@ -142,6 +142,17 @@ export type ClassificationOrigin = z.infer<typeof classificationOriginSchema>;
 
 // --- Hints -------------------------------------------------------------------
 
+/** What a warning about a path ahead is about. */
+export const PATH_WARNING_KINDS = [
+  'achievement',
+  'item',
+  'npc',
+  'point_of_no_return',
+  'other',
+] as const;
+export const pathWarningKindSchema = z.enum(PATH_WARNING_KINDS);
+export type PathWarningKind = z.infer<typeof pathWarningKindSchema>;
+
 export const HINT_KINDS = ['general', 'puzzle', 'boss'] as const;
 export const hintKindSchema = z.enum(HINT_KINDS);
 export type HintKind = z.infer<typeof hintKindSchema>;

@@ -39,6 +39,13 @@ export const checkpoints = sqliteTable(
     isPointOfNoReturn: flag('is_point_of_no_return'),
     /** Boss fought at this checkpoint, when there is one. Feeds the proactive "boss tips?" question. */
     bossName: text('boss_name'),
+    /**
+     * Checkpoints of the same map that can be reached from here. Empty means "the next one by
+     * position", which is all a linear game needs; open games branch.
+     */
+    leadsTo: stringArray('leads_to'),
+    /** Item, key or event that opens the way here, as the game names it. */
+    requirement: text('requirement'),
     origin: text('origin', { enum: CONTENT_ORIGINS }).notNull(),
     ...timestamps(),
   },

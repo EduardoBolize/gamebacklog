@@ -8,6 +8,7 @@ import { assistApi, useMap } from '../../api-assist.ts';
 import { ErrorNote, Loading, PercentBar } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import { ChapterMapSection, SourceList } from './ChapterMapSection.tsx';
+import { PathsSection } from './PathsSection.tsx';
 import { PointOfNoReturnDialog, useReportProgress } from './WhereAmI.tsx';
 
 interface Props {
@@ -112,6 +113,7 @@ export function ProgressTab({
         runId={run.id}
         onMove={(checkpointId) => move.report({ checkpointId })}
       />
+      <PathsSection runId={run.id} onMove={(checkpointId) => move.report({ checkpointId })} />
       <ErrorNote error={move.held ? null : move.error} />
       <PointOfNoReturnDialog progress={move} />
 

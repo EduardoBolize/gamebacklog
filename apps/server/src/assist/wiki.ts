@@ -25,6 +25,17 @@ export const normalizeText = (text: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+const ROMAN: Record<string, string> = {
+  ii: '2',
+  iii: '3',
+  iv: '4',
+  v: '5',
+  vi: '6',
+  vii: '7',
+  viii: '8',
+  ix: '9',
+};
+
 /**
  * Fandom subdomains worth trying for a game, most specific first. Wikis are usually named after
  * the franchise ("zelda", "darksouls"), sometimes after the game itself.
@@ -37,6 +48,12 @@ export function wikiCandidates(game: { title: string; franchise: string | null }
   for (const name of names) {
     slugs.add(slug(name));
     slugs.add(slug(name.replace(/^the\s+/i, '')));
+    // "Dark Souls II" → also "darksouls2": wikis are often named with the digit.
+    const numeral = /\s+(ii|iii|iv|v|vi|vii|viii|ix)$/i.exec(name.trim());
+    if (numeral?.[1]) {
+      const digit = ROMAN[numeral[1].toLowerCase()];
+      if (digit) slugs.add(slug(name.trim().slice(0, numeral.index)) + digit);
+    }
     // "The Legend of Zelda" → "zelda"
     const words = name.trim().split(/\s+/);
     if (words.length > 2) slugs.add(slug(words.at(-1) ?? ''));

@@ -245,20 +245,33 @@ export function ChapterMapSection({
   /** Called when the user says "I'm here" on a step. */
   onMove: (checkpointId: string) => void;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, locale } = useI18n();
   const map = useMap(runId);
   const [editing, setEditing] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const generate = useApiMutation((force: boolean) => assistApi.generateMap(entryId, force));
+  const generate = useApiMutation((force: boolean) =>
+    assistApi.generateMap(entryId, force, locale),
+  );
+  const markDone = useApiMutation((input: { checkpointId: string; done: boolean }) =>
+    assistApi.setCheckpointDone(runId, input.checkpointId, input.done),
+  );
 
   if (map.isPending) return <Loading />;
   if (map.isError) return <ErrorNote error={map.error} />;
 
   const data: ChapterMapResponse = map.data;
   const steps = data.map?.checkpoints ?? [];
-  const currentPosition = steps.find((step) => step.id === data.currentCheckpointId)?.position ?? 0;
-  // Up to and including the step right after the current one.
-  const visible = showAll ? steps : steps.filter((step) => step.position <= currentPosition + 1);
+  const current = steps.find((step) => step.id === data.currentCheckpointId);
+  const currentPosition = current?.position ?? 0;
+  const completed = new Set(data.completedCheckpointIds);
+  const reachable = new Set(current?.leadsTo ?? []);
+  // Up to the step right after the current one, plus what is finished or one branch away.
+  const visible = showAll
+    ? steps
+    : steps.filter(
+        (step) =>
+          step.position <= currentPosition + 1 || completed.has(step.id) || reachable.has(step.id),
+      );
   const hiddenCount = steps.length - visible.length;
 
   return (
@@ -281,19 +294,38 @@ export function ChapterMapSection({
         <ol className="grid gap-1">
           {visible.map((step) => {
             const isCurrent = step.id === data.currentCheckpointId;
+            const isDone = completed.has(step.id);
             return (
               <li
                 key={step.id}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2 text-sm"
               >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-accent"
+                  aria-label={t('map.markDone', { name: step.name })}
+                  checked={isDone}
+                  disabled={markDone.isPending}
+                  onChange={(event) =>
+                    markDone.mutate({ checkpointId: step.id, done: event.target.checked })
+                  }
+                />
                 <span className="w-6 tabular-nums text-muted">{step.position}</span>
-                <span className={`min-w-0 flex-1 ${isCurrent ? 'font-semibold' : ''}`}>
+                <span
+                  className={`min-w-0 flex-1 ${isCurrent ? 'font-semibold' : ''} ${isDone && !isCurrent ? 'text-muted' : ''}`}
+                >
                   {step.name}
+                  {isDone && !isCurrent && <span className="ml-2">✓ {t('map.done')}</span>}
                   {isCurrent && <span className="ml-2 text-accent">← {t('map.youAreHere')}</span>}
                   {step.isPointOfNoReturn && (
                     <span className="ml-2 text-danger">{t('map.pointOfNoReturn')}</span>
                   )}
-                  {step.bossName && step.position <= currentPosition && (
+                  {step.requirement && !isDone && (
+                    <span className="ml-2 font-normal text-muted">
+                      {t('map.needs', { name: step.requirement })}
+                    </span>
+                  )}
+                  {step.bossName && (step.position <= currentPosition || isDone) && (
                     <span className="ml-2 font-normal text-muted">
                       {t('map.boss', { name: step.bossName })}
                     </span>
@@ -320,6 +352,7 @@ export function ChapterMapSection({
       )}
 
       {data.map && <SourceList sources={data.map.sources} label={t('map.sources')} />}
+      <ErrorNote error={markDone.error} />
 
       <div className="flex flex-wrap gap-2">
         {data.aiConnected && (
@@ -344,6 +377,7 @@ export function ChapterMapSection({
         </button>
       </div>
       <ErrorNote error={generate.error} />
+      <p className="note">{t('map.mapsElsewhere')}</p>
 
       <WikiField key={data.wikiUrl ?? 'none'} entryId={entryId} wikiUrl={data.wikiUrl} />
 

@@ -4,6 +4,7 @@ import { api, useAchievements, useApiMutation, useSources } from '../../api.ts';
 import { ErrorNote, Loading, PercentBar } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import { AreaChecklist } from './AreaChecklist.tsx';
+import { PathWarningsBanner, useWarnedAchievements } from './PathsSection.tsx';
 
 export const ACHIEVEMENT_FILTERS = ['all', 'missing', 'story', 'missable'] as const;
 export type AchievementFilter = (typeof ACHIEVEMENT_FILTERS)[number];
@@ -15,7 +16,16 @@ const matches: Record<AchievementFilter, (item: Achievement) => boolean> = {
   missable: (item) => item.isMissable,
 };
 
-function AchievementRow({ item, runId }: { item: Achievement; runId: string }) {
+function AchievementRow({
+  item,
+  runId,
+  warned,
+}: {
+  item: Achievement;
+  runId: string;
+  /** The reading of the paths ahead warns about this one. */
+  warned: boolean;
+}) {
   const { t, formatNumber, formatDate } = useI18n();
   const [revealed, setRevealed] = useState(false);
   const unlock = useApiMutation((isUnlocked: boolean) =>
@@ -30,6 +40,7 @@ function AchievementRow({ item, runId }: { item: Achievement; runId: string }) {
     item.isMissable && t('achievements.tagMissable'),
     item.isNgPlus && t('achievements.tagNgPlus'),
   ].filter(Boolean);
+  if (warned && !item.isUnlocked) tags.unshift(`⚠ ${t('paths.achievementTag')}`);
 
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-b border-line py-3 sm:grid-cols-[auto_minmax(0,1fr)_9rem]">
@@ -162,6 +173,7 @@ export function AchievementsTab({
   const runId = run.id;
   const achievements = useAchievements(runId);
   const sync = useApiMutation(() => api.syncAchievements(entryId));
+  const warned = useWarnedAchievements(runId);
 
   if (achievements.isPending) return <Loading />;
   if (achievements.isError) return <ErrorNote error={achievements.error} />;
@@ -183,6 +195,7 @@ export function AchievementsTab({
 
   return (
     <div className="grid gap-4">
+      <PathWarningsBanner runId={runId} />
       <AreaChecklist key={run.id} run={run} />
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="text-lg">
@@ -249,7 +262,12 @@ export function AchievementsTab({
           ) : (
             <ul className="border-t border-line">
               {visible.map((item) => (
-                <AchievementRow key={item.id} item={item} runId={runId} />
+                <AchievementRow
+                  key={item.id}
+                  item={item}
+                  runId={runId}
+                  warned={warned.has(item.id)}
+                />
               ))}
             </ul>
           )}

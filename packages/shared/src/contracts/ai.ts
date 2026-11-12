@@ -7,6 +7,7 @@ import {
   contentOriginSchema,
   hintKindSchema,
   hintLevelSchema,
+  pathWarningKindSchema,
   webSearchProviderSchema,
 } from '../enums.ts';
 import { provenanceSchema } from '../provenance.ts';
@@ -131,6 +132,10 @@ export const checkpointSchema = z.object({
   aliases: z.array(z.string()),
   isPointOfNoReturn: z.boolean(),
   bossName: z.string().nullable(),
+  /** Checkpoints reachable from this one; empty means the next one by position. */
+  leadsTo: z.array(z.string()),
+  /** What opens the way here (an item, a key, an event), as the game names it. */
+  requirement: z.string().nullable(),
   origin: contentOriginSchema,
 });
 export type Checkpoint = z.infer<typeof checkpointSchema>;
@@ -147,6 +152,8 @@ export const chapterMapResponseSchema = z.object({
     })
     .nullable(),
   currentCheckpointId: z.string().nullable(),
+  /** Checkpoints this run finished, in any order. */
+  completedCheckpointIds: z.array(z.string()),
   /** Wiki the map and the hints read from, when one was found or set by the user. */
   wikiUrl: z.string().nullable(),
   /** True when an AI is connected, so a map can be generated. */
@@ -170,6 +177,17 @@ export const saveCheckpointsRequestSchema = z.object({
 });
 export type SaveCheckpointsRequest = z.infer<typeof saveCheckpointsRequestSchema>;
 
+export const generateMapRequestSchema = z
+  .object({
+    force: z.boolean().optional(),
+    /** Language of the aliases added to each place, so the player's own words match. */
+    locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
+  })
+  .default({ locale: 'pt-BR' });
+
+/** Marks a checkpoint as finished or not, without moving the current position. */
+export const setCheckpointDoneRequestSchema = z.object({ done: z.boolean() });
+
 export const setWikiRequestSchema = z.object({ wikiUrl: z.url().max(300).nullable() });
 export type SetWikiRequest = z.infer<typeof setWikiRequestSchema>;
 
@@ -181,6 +199,8 @@ export const reportProgressRequestSchema = z.object({
   checkpointId: z.string().optional(),
   /** Set after the user read the point-of-no-return warning and chose to go on. */
   confirmPointOfNoReturn: z.boolean().optional(),
+  /** Language of the interface, used if the chapter map has to be built first. */
+  locale: z.enum(['pt-BR', 'en']).optional(),
 });
 export type ReportProgressRequest = z.infer<typeof reportProgressRequestSchema>;
 
@@ -191,6 +211,15 @@ export const reportProgressResponseSchema = z.object({
   saved: z.boolean(),
   checkpoint: checkpointSchema.nullable(),
   resolvedBy: z.enum(['manual', 'local_match', 'ai']).nullable(),
+  /** Checkpoints the text said were finished ("I beat X and Y, now I'm at Z"). */
+  completed: z.array(checkpointSchema),
+  /**
+   * Why the text could not be placed on the map, when it was not: there is no map (and none
+   * could be built), or no place on it matched. The text is stored either way.
+   */
+  notPlaced: z.enum(['no_map', 'no_match']).nullable(),
+  /** Error code of the AI when building the map or reading the text failed, e.g. `ai_usage_limit`. */
+  aiError: z.string().nullable(),
   /** Present when `saved` is false: what would be left behind for good. */
   warning: z
     .object({
@@ -201,6 +230,42 @@ export const reportProgressResponseSchema = z.object({
     .nullable(),
 });
 export type ReportProgressResponse = z.infer<typeof reportProgressResponseSchema>;
+
+// --- Paths ahead --------------------------------------------------------------------------
+
+export const pathWarningSchema = z.object({
+  kind: pathWarningKindSchema,
+  /** Achievement, item or character, as the game names it. */
+  name: z.string(),
+  detail: z.string(),
+  /** The achievement in this app the warning is about, when it is one. */
+  achievementId: z.string().nullable(),
+});
+export type PathWarning = z.infer<typeof pathWarningSchema>;
+
+export const pathsResponseSchema = z.object({
+  /** Where the run is; null until the player says where they are. */
+  current: checkpointSchema.nullable(),
+  /** Places reachable from there that are not finished yet. Costs no AI. */
+  options: z.array(checkpointSchema),
+  /** The AI's reading of those options, when it was asked for (or is in the cache). */
+  analysis: z
+    .object({
+      beforeLeaving: z.array(pathWarningSchema),
+      paths: z.array(
+        z.object({
+          checkpointId: z.string(),
+          howToGetThere: z.string().nullable(),
+          warnings: z.array(pathWarningSchema),
+        }),
+      ),
+      sources: z.array(provenanceSchema),
+      cached: z.boolean(),
+    })
+    .nullable(),
+  aiConnected: z.boolean(),
+});
+export type PathsResponse = z.infer<typeof pathsResponseSchema>;
 
 // --- Hints ----------------------------------------------------------------------------
 

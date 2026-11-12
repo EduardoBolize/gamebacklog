@@ -5,4 +5,4 @@ export const APP_NAME = 'GameBacklog';
  * Version of the user-data model. Stored in `schema_meta` and written as `schemaVersion`
  * in JSON exports. Bump it whenever a migration changes the shape of exported data.
  */
-export const DATA_SCHEMA_VERSION = 3;
+export const DATA_SCHEMA_VERSION = 4;

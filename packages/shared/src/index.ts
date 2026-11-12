@@ -10,3 +10,4 @@ export * from './contracts/export.ts';
 export * from './contracts/ai.ts';
 export * from './contracts/recommendations.ts';
 export * from './contracts/stats.ts';
+export * from './contracts/maps.ts';

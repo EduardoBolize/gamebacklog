@@ -14,7 +14,7 @@ function answerFor(system, user) {
     const level = /Level (\d)/.exec(system)?.[1] ?? '?';
     return { hint: `Dica de nível ${level} para o teste.`, sources: [] };
   }
-  if (system.includes('ordered list of checkpoints')) {
+  if (system.includes('list for a progress tracker')) {
     return {
       checkpoints: [
         { name: 'Kokiri Forest', aliases: [], isPointOfNoReturn: false, bossName: null },
@@ -27,8 +27,22 @@ function answerFor(system, user) {
       ],
     };
   }
-  if (system.includes('Pick the checkpoint')) {
-    return /deku/i.test(user) ? { checkpoint: 2, alias: null } : { checkpoint: null, alias: null };
+  if (system.includes('Match what they wrote to the numbered checkpoints')) {
+    return /deku/i.test(user)
+      ? { checkpoint: 2, completed: [], alias: null }
+      : { checkpoint: null, completed: [], alias: null };
+  }
+  if (system.includes('choose where to go next')) {
+    return {
+      beforeLeaving: [{ kind: 'item', name: 'Escudo de teste', detail: 'Pegue antes de sair.' }],
+      paths: [
+        {
+          option: 1,
+          howToGetThere: 'Caminho de teste.',
+          warnings: [{ kind: 'point_of_no_return', name: 'Templo', detail: 'Aviso de teste.' }],
+        },
+      ],
+    };
   }
   if (system.includes('completionist checklist')) {
     return {

@@ -79,6 +79,22 @@ export const EXPORT_MIGRATIONS: Record<number, ExportMigration> = {
   // 2 → 3: PSN and Xbox became valid origins. Older files need no change; the version only
   // stops an older app from importing a file with origins it does not know.
   2: (file) => file,
+  // 3 → 4: checkpoints gained branches and a requirement; runs remember finished checkpoints.
+  3: (file) => ({
+    ...file,
+    data: {
+      ...(file.data as Record<string, unknown>),
+      checkpoints: rowsOf(file, 'checkpoints').map((row) => ({
+        leadsTo: [],
+        requirement: null,
+        ...row,
+      })),
+      playthroughs: rowsOf(file, 'playthroughs').map((row) => ({
+        completedCheckpointIds: [],
+        ...row,
+      })),
+    },
+  }),
 };
 
 /** Brings a file of any known version up to the current format. */

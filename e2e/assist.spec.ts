@@ -98,7 +98,12 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Entendi: você está em Inside the Deku Tree.')).toBeVisible();
   await expect(page.getByText('Reconhecido sem usar IA.')).toBeVisible();
-  expect(await chatRequests(request)).toBe(before);
+
+  // Having moved, the paths from here are read by themselves: the only AI request so far.
+  await expect(page.getByText('Você está em Inside the Deku Tree. Dá para ir para:')).toBeVisible();
+  await expect(page.getByText('Caminho de teste.')).toBeVisible();
+  await expect(page.getByText('— Pegue antes de sair.')).toBeVisible();
+  expect(await chatRequests(request)).toBe(before + 1);
 
   // The map shows where the player is and keeps what lies further ahead hidden.
   await expect(page.getByText('← você está aqui')).toBeVisible();
@@ -110,7 +115,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   await page
     .getByRole('button', { name: 'Quer dicas para Queen Gohma, o chefe desta área?' })
     .click();
-  await expect(page.getByText('Você está em Inside the Deku Tree.')).toBeVisible();
+  await expect(page.getByText('Você está em Inside the Deku Tree.', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Um chefe')).toBeChecked();
 
   // Hint ladder: level 1, then level 2, each fetched only when asked.
@@ -123,7 +128,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   await expect(page.getByText('Dica de nível 1 para o teste.')).toBeVisible();
   await page.getByRole('button', { name: 'Ver Nível 2 · direção' }).click();
   await expect(page.getByText('Dica de nível 2 para o teste.')).toBeVisible();
-  expect(await chatRequests(request)).toBe(before + 2);
+  expect(await chatRequests(request)).toBe(before + 3);
 
   // The same request again comes from the cache: zero tokens, no new call to the AI.
   await page.reload();
@@ -133,7 +138,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   await page.getByRole('button', { name: 'Ver Nível 1 · empurrão' }).click();
   await expect(page.getByText('Dica de nível 1 para o teste.')).toBeVisible();
   await expect(page.getByText('do cache · 0 tokens')).toBeVisible();
-  expect(await chatRequests(request)).toBe(before + 2);
+  expect(await chatRequests(request)).toBe(before + 3);
 
   // And the usage screen says so.
   await page.goto('/ai/usage');

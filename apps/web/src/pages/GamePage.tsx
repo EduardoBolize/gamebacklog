@@ -22,17 +22,19 @@ import {
 import { AssistBanner } from './game/AssistBanner.tsx';
 import { DiaryTab } from './game/DiaryTab.tsx';
 import { HintsTab } from './game/HintsTab.tsx';
+import { MapTab } from './game/MapTab.tsx';
 import { ProgressTab } from './game/ProgressTab.tsx';
 import { ReviewTab } from './game/ReviewTab.tsx';
 import { SimilarTab } from './game/SimilarTab.tsx';
 import { TimeBars } from './game/TimeBars.tsx';
 import { WhereAmI } from './game/WhereAmI.tsx';
 
-const TABS = ['progress', 'hints', 'achievements', 'diary', 'review', 'similar'] as const;
+const TABS = ['progress', 'map', 'hints', 'achievements', 'diary', 'review', 'similar'] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL = {
   progress: 'game.tabProgress',
+  map: 'game.tabMap',
   hints: 'game.tabHints',
   achievements: 'game.tabAchievements',
   diary: 'game.tabDiary',
@@ -352,6 +354,7 @@ function GameView({ detail }: { detail: GameDetailResponse }) {
             }}
           />
         )}
+        {tab === 'map' && <MapTab key={run.id} runId={run.id} />}
         {tab === 'hints' && (
           <HintsTab
             key={run.id}

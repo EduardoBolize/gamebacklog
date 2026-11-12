@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import os from 'node:os';
 import path from 'node:path';
 import {
+  DATA_SCHEMA_VERSION,
   exportFileSchema,
   type ExportFile,
   type GameDetailResponse,
@@ -310,7 +311,12 @@ describe('import validation', () => {
       schemaVersion: 1,
       data: {
         ...current.data,
-        checkpoints: current.data.checkpoints.map(({ bossName: _bossName, ...row }) => row),
+        checkpoints: current.data.checkpoints.map(
+          ({ bossName: _bossName, leadsTo: _leadsTo, requirement: _requirement, ...row }) => row,
+        ),
+        playthroughs: current.data.playthroughs.map(
+          ({ completedCheckpointIds: _completed, ...row }) => row,
+        ),
       },
     };
 
@@ -322,9 +328,13 @@ describe('import validation', () => {
     expect(result.status).toBe(200);
     expect(result.body.fileSchemaVersion).toBe(1);
     const restored = await exportOf(target);
-    expect(restored.schemaVersion).toBe(3);
+    expect(restored.schemaVersion).toBe(DATA_SCHEMA_VERSION);
     expect(restored.data.checkpoints).toHaveLength(4);
     expect(restored.data.checkpoints.every((row) => row.bossName === null)).toBe(true);
+    expect(restored.data.checkpoints.every((row) => row.leadsTo.length === 0)).toBe(true);
+    expect(restored.data.playthroughs.every((row) => row.completedCheckpointIds.length === 0)).toBe(
+      true,
+    );
   });
 
   it('upgrades files from older format versions step by step', () => {

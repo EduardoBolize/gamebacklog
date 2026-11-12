@@ -8,12 +8,16 @@ import {
   chapterMapResponseSchema,
   funnelEstimateResponseSchema,
   gameAssistResponseSchema,
+  gameMapsResponseSchema,
   hintResponseSchema,
+  interactiveMapSchema,
+  pathsResponseSchema,
   reportProgressResponseSchema,
   revealedHintsResponseSchema,
   webSearchSettingsSchema,
   type AiProviderId,
   type HintRequest,
+  type InteractiveMapRef,
   type ReportProgressRequest,
   type SaveAiProviderRequest,
   type SaveAiSettingsRequest,
@@ -53,8 +57,31 @@ export const assistApi = {
 
   map: (runId: string) =>
     request('GET', `/api/playthroughs/${runId}/map`, chapterMapResponseSchema),
-  generateMap: (entryId: string, force: boolean) =>
-    request('POST', `/api/library/${entryId}/map/generate`, anything, { force }),
+  generateMap: (entryId: string, force: boolean, locale: Locale) =>
+    request('POST', `/api/library/${entryId}/map/generate`, anything, { force, locale }),
+  setCheckpointDone: (runId: string, checkpointId: string, done: boolean) =>
+    request('PUT', `/api/playthroughs/${runId}/checkpoints/${checkpointId}/done`, anything, {
+      done,
+    }),
+
+  paths: (runId: string, locale: Locale) =>
+    request('GET', `/api/playthroughs/${runId}/paths?locale=${locale}`, pathsResponseSchema),
+  analyzePaths: (runId: string, locale: Locale) =>
+    request(
+      'POST',
+      `/api/playthroughs/${runId}/paths/analyze?locale=${locale}`,
+      pathsResponseSchema,
+      {},
+    ),
+
+  maps: (runId: string) =>
+    request('GET', `/api/playthroughs/${runId}/maps`, gameMapsResponseSchema),
+  interactiveMap: (runId: string, ref: Pick<InteractiveMapRef, 'wikiUrl' | 'page'>) =>
+    request(
+      'GET',
+      `/api/playthroughs/${runId}/maps/interactive?${new URLSearchParams({ wiki: ref.wikiUrl, title: ref.page }).toString()}`,
+      interactiveMapSchema,
+    ),
   saveMap: (entryId: string, body: SaveCheckpointsRequest) =>
     request('PUT', `/api/library/${entryId}/map`, anything, body),
   setWiki: (entryId: string, wikiUrl: string | null) =>
@@ -109,6 +136,10 @@ export const assistKeys = {
   aiUsage: ['aiUsage'] as const,
   webSearch: ['webSearch'] as const,
   map: (runId: string) => ['map', runId] as const,
+  paths: (runId: string, locale: Locale) => ['paths', runId, locale] as const,
+  maps: (runId: string) => ['maps', runId] as const,
+  interactiveMap: (runId: string, wikiUrl: string, title: string) =>
+    ['interactiveMap', runId, wikiUrl, title] as const,
   hints: (runId: string, locale: Locale) => ['hints', runId, locale] as const,
   checklist: (runId: string, checkpointId: string | null, locale: Locale) =>
     ['checklist', runId, checkpointId, locale] as const,
@@ -124,6 +155,30 @@ export const useWebSearch = () =>
   useQuery({ queryKey: assistKeys.webSearch, queryFn: assistApi.webSearch });
 export const useMap = (runId: string) =>
   useQuery({ queryKey: assistKeys.map(runId), queryFn: () => assistApi.map(runId) });
+export const usePaths = (runId: string, locale: Locale) =>
+  useQuery({
+    queryKey: assistKeys.paths(runId, locale),
+    queryFn: () => assistApi.paths(runId, locale),
+  });
+export const useGameMaps = (runId: string) =>
+  useQuery({
+    queryKey: assistKeys.maps(runId),
+    queryFn: () => assistApi.maps(runId),
+    // Looking through the wikis takes a few seconds the first time; keep the answer a while.
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+export const useInteractiveMap = (
+  runId: string,
+  ref: Pick<InteractiveMapRef, 'wikiUrl' | 'page'> | null,
+) =>
+  useQuery({
+    queryKey: assistKeys.interactiveMap(runId, ref?.wikiUrl ?? '', ref?.page ?? ''),
+    queryFn: () => assistApi.interactiveMap(runId, ref ?? { wikiUrl: '', page: '' }),
+    enabled: ref !== null,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
 export const useHints = (runId: string, locale: Locale) =>
   useQuery({
     queryKey: assistKeys.hints(runId, locale),

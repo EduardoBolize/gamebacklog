@@ -5,9 +5,9 @@ import type {
 } from '@gamebacklog/shared';
 import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
-import { api, useApiMutation, useFunnel } from '../../api.ts';
+import { ApiError, api, useApiMutation, useFunnel } from '../../api.ts';
 import { assistApi } from '../../api-assist.ts';
-import { ErrorNote, Modal } from '../../components/ui.tsx';
+import { ErrorNote, Modal, useErrorMessage } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 
 type Warning = NonNullable<ReportProgressResponse['warning']>;
@@ -110,9 +110,32 @@ export function PointOfNoReturnDialog({
   );
 }
 
+/** What became of the last report: where it placed the run, or why it could not. */
+function ProgressNote({ result }: { result: ReportProgressResponse }) {
+  const { t } = useI18n();
+  const message = useErrorMessage();
+  if (!result.checkpoint) {
+    const reason = result.aiError
+      ? message(new ApiError(result.aiError, 502))
+      : result.notPlaced === 'no_match'
+        ? t('map.notPlacedNoMatch')
+        : t('map.notPlacedNoMap');
+    return <p className="note">{t('map.notPlaced', { reason })}</p>;
+  }
+  return (
+    <p className="note">
+      {t('map.understood', { name: result.checkpoint.name })}{' '}
+      {result.completed.length > 0 &&
+        `${t('map.completed', { names: result.completed.map((step) => step.name).join(', ') })} `}
+      {result.resolvedBy === 'local_match' && t('map.resolvedLocal')}
+      {result.resolvedBy === 'ai' && t('map.resolvedAi')}
+    </p>
+  );
+}
+
 /** "Where am I?": free text, resolved to a step of the chapter map when there is one. */
 export function WhereAmI({ run }: { run: Playthrough }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [text, setText] = useState('');
   const inputId = useId();
   const funnel = useFunnel(run.id);
@@ -125,7 +148,7 @@ export function WhereAmI({ run }: { run: Playthrough }) {
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!text.trim()) return;
-    progress.report({ rawText: text.trim() }, () => setText(''));
+    progress.report({ rawText: text.trim(), locale }, () => setText(''));
   }
 
   return (
@@ -151,15 +174,7 @@ export function WhereAmI({ run }: { run: Playthrough }) {
         </button>
       </form>
       <div aria-live="polite">
-        {progress.last && !text && (
-          <p className="note">
-            {progress.last.checkpoint
-              ? t('map.understood', { name: progress.last.checkpoint.name })
-              : t('app.saved')}{' '}
-            {progress.last.resolvedBy === 'local_match' && t('map.resolvedLocal')}
-            {progress.last.resolvedBy === 'ai' && t('map.resolvedAi')}
-          </p>
-        )}
+        {progress.last && !text && <ProgressNote result={progress.last} />}
       </div>
       {milestones.length > 0 && (
         <label className="flex flex-wrap items-center gap-2 text-sm text-muted">

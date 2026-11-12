@@ -22,7 +22,7 @@ import type {
 import type { RetroGame, RetroSource } from '../sources/retroachievements/index.ts';
 import type { WebSearchResult, WebSearchSource } from '../sources/web-search/index.ts';
 import type { WikiSection } from '../sources/wiki/html.ts';
-import type { WikiImage, WikiSite, WikiSource } from '../sources/wiki/index.ts';
+import type { WikiImage, WikiInteractiveMap, WikiSite, WikiSource } from '../sources/wiki/index.ts';
 import { createTestDatabase } from './helpers.ts';
 
 /** Catalog entry with sensible defaults, for building fake IGDB data. */
@@ -84,6 +84,8 @@ export interface FakeSources {
   wikiImages: WikiImage[];
   /** Page title → names of the image files used on it. */
   wikiPageImages: Record<string, string[]>;
+  /** Wiki host → its interactive maps. */
+  wikiMaps: Record<string, WikiInteractiveMap[]>;
   /** Every wiki request made, as `probe:<host>`, `search:<query>` or `page:<title>`. */
   wikiCalls: string[];
   webSearchConfigured: boolean;
@@ -241,6 +243,21 @@ function fakeWiki(state: FakeSources): WikiSource {
       const names = state.wikiPageImages[title] ?? [];
       return Promise.resolve(state.wikiImages.filter((image) => names.includes(image.title)));
     },
+    listInteractiveMaps(site) {
+      const host = new URL(site.apiUrl).host;
+      state.wikiCalls.push(`maps:${host}`);
+      return Promise.resolve(
+        (state.wikiMaps[host] ?? []).map(({ title, pageUrl, kind }) => ({ title, pageUrl, kind })),
+      );
+    },
+    getInteractiveMap(site, title) {
+      const host = new URL(site.apiUrl).host;
+      state.wikiCalls.push(`map:${host}:${title}`);
+      const wanted = title.replace(/^Map:/, '');
+      return Promise.resolve(
+        state.wikiMaps[host]?.find((map) => map.title === wanted || map.title === title) ?? null,
+      );
+    },
     healthCheck: () => Promise.resolve({ status: 'ok' as const, message: 'ok' }),
   };
 }
@@ -352,7 +369,7 @@ function fakeRetro(state: FakeSources): RetroSource {
 export interface FakeAi {
   /** When false, the app behaves as if no AI was connected. */
   connected: boolean;
-  /** Answers handed out in order; objects are sent as JSON. The last one repeats. */
+  /** Answers handed out in order; objects are sent as JSON, errors are thrown. The last one repeats. */
   answers: unknown[];
   /** Every request the provider received. */
   requests: AiTextRequest[];
@@ -374,6 +391,8 @@ function createFakeAi(): FakeAi {
         fake.requests.push(request);
         const answer = fake.answers.length > 1 ? fake.answers.shift() : fake.answers[0];
         if (answer === undefined) return Promise.reject(new Error('FakeAi has no answer queued'));
+        // An Error queued as an answer is thrown, to test how failures reach the user.
+        if (answer instanceof Error) return Promise.reject(answer);
         return Promise.resolve({
           text: typeof answer === 'string' ? answer : JSON.stringify(answer),
           model: 'fake-model',
@@ -421,6 +440,7 @@ export async function createTestApp(dataDir = 'unused-in-tests'): Promise<TestAp
     wikiPages: {},
     wikiImages: [],
     wikiPageImages: {},
+    wikiMaps: {},
     wikiCalls: [],
     webSearchConfigured: false,
     webResults: [],

@@ -68,6 +68,8 @@ export const playthroughs = sqliteTable(
     currentCheckpointId: text('current_checkpoint_id').references(() => checkpoints.id, {
       onDelete: 'set null',
     }),
+    /** Checkpoints the player said they finished; open games are not done in map order. */
+    completedCheckpointIds: stringArray('completed_checkpoint_ids'),
     ...timestamps(),
   },
   (t) => [uniqueIndex('playthroughs_entry_number_uq').on(t.libraryEntryId, t.number)],

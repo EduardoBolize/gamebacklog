@@ -779,6 +779,9 @@ describe('wiki of a game', () => {
     expect(wikiCandidates({ title: 'Dark Souls: Remastered', franchise: 'Dark Souls' })).toContain(
       'darksouls',
     );
+    expect(wikiCandidates({ title: 'Dark Souls II', franchise: 'Dark Souls' })).toEqual(
+      expect.arrayContaining(['darksouls', 'darksoulsii', 'darksouls2']),
+    );
     expect(wikiCandidates({ title: 'Pokémon Émeraude', franchise: null })).toContain(
       'pokemonemeraude',
     );
