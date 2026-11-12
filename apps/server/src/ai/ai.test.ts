@@ -467,6 +467,31 @@ describe('CLI providers', () => {
     await expect(garbage.core.generate(request)).rejects.toMatchObject({ code: 'provider_error' });
   });
 
+  it('tells a used-up subscription apart from other failures', async () => {
+    // What Claude Code prints when the plan's limit for the model is reached.
+    const limited = provider('claude_cli', () => ({
+      exitCode: 1,
+      stdout: JSON.stringify({
+        type: 'result',
+        is_error: true,
+        api_error_status: 429,
+        result: "You've reached your limit. Switch to another model to continue.",
+      }),
+    }));
+    const error = await limited.core.generate(request).then(
+      () => new Error('expected a failure'),
+      (caught: unknown) => caught as Error,
+    );
+    expect(error).toMatchObject({ code: 'usage_limit' });
+    expect(error.message).toBe('Claude Code (CLI) reached its usage limit');
+
+    const codex = provider('codex_cli', () => ({
+      exitCode: 1,
+      stderr: 'ERROR: You exceeded your current quota',
+    }));
+    await expect(codex.core.generate(request)).rejects.toMatchObject({ code: 'usage_limit' });
+  });
+
   it('detects "not installed", "not logged in" and "ready"', async () => {
     const missing = createCliProvider({
       spec: spec('claude_cli'),

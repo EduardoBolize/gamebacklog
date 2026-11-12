@@ -32,6 +32,10 @@ interface CliSpec {
   parse(result: CliResult, outputFile: string): AiTextResult;
 }
 
+/** How the CLIs say the subscription hit its usage limit or the service is rate limiting. */
+export const USAGE_LIMIT =
+  /usage limit|rate.?limit|reached your .{0,40}limit|limit (reached|exceeded)|quota|too many requests|\b429\b|requires_usage_credits/i;
+
 const NOT_LOGGED_IN =
   /not logged in|log ?in required|please (run|use).{0,20}login|unauthori[sz]ed|authentication|invalid api key|401/i;
 
@@ -82,6 +86,7 @@ export const CLI_SPECS: CliSpec[] = [
     parse(result) {
       const json = parseJsonLine(result.stdout);
       if (!json || typeof json.result !== 'string' || json.is_error === true) {
+        if (json?.api_error_status === 429) throw new Error('usage limit (429)');
         throw new Error(typeof json?.result === 'string' ? json.result : result.stderr);
       }
       const usage = (json.usage ?? {}) as Record<string, unknown>;
@@ -230,6 +235,13 @@ export function createCliProvider(options: CliProviderOptions): AiProviderCore {
           // The CLI's own text decides between "log in" and "something else". It is not
           // echoed to the user: it could quote the environment.
           const text = `${error instanceof Error ? error.message : ''} ${result.stderr}`;
+          if (USAGE_LIMIT.test(text)) {
+            throw new AiProviderError(
+              spec.id,
+              'usage_limit',
+              `${spec.displayName} reached its usage limit`,
+            );
+          }
           if (NOT_LOGGED_IN.test(text)) {
             throw new AiProviderError(
               spec.id,

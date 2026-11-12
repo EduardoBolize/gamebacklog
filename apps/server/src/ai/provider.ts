@@ -89,6 +89,8 @@ export type AiErrorCode =
   | 'timeout'
   | 'cancelled'
   | 'invalid_response'
+  /** The subscription or the key ran out of quota for now (HTTP 429 and the like). */
+  | 'usage_limit'
   | 'provider_error';
 
 /** Error thrown by providers. `message` must be safe to show and log: no keys, no tokens. */

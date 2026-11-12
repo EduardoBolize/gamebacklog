@@ -254,6 +254,13 @@ export function createApiProvider(options: ApiProviderOptions): AiProviderCore {
         // Provider messages are not passed on: they can echo request details.
         if (APICallError.isInstance(error)) {
           const status = error.statusCode;
+          if (status === 429) {
+            throw new AiProviderError(
+              spec.id,
+              'usage_limit',
+              `${spec.displayName} reached its usage limit`,
+            );
+          }
           if (status === 401 || status === 403) {
             throw new AiProviderError(
               spec.id,
