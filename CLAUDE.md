@@ -21,25 +21,29 @@ Princípios inegociáveis:
 
 ## Estado atual
 
-**Fases 0, 1, 2 e 3 concluídas.** Além da biblioteca local completa, o app conecta a IA que o
-usuário tiver (CLI com assinatura, chave de API ou modelo local) e, com ela, monta o mapa de
-capítulos, entende o "Onde estou?" em texto livre, dá dicas em quatro níveis sem spoiler e lista
-colecionáveis e perdíveis por área. As recomendações (perfil de gosto, "o que jogar agora",
-parecidos, gênero favorito) são calculadas localmente, sem IA. Próxima: Fase 4 (extras e
-polimento).
+**Fases 0 a 4 concluídas**, com uma pendência: o fallback de catálogo pelo **RAWG** não foi
+feito, porque o site e a API do RAWG estavam fora do ar (erro 522) e não foi possível conferir a
+documentação. A chave do RAWG pode ser guardada, mas nada a usa.
 
-Ainda não existe: painel de estatísticas, alerta de risco de drop, RAWG e RetroAchievements (as
-chaves já podem ser guardadas, mas nada as usa), README e LICENSE.
+O app tem: biblioteca local completa; contas da Steam, PlayStation e Xbox (importar jogos,
+sincronizar conquistas e troféus) e RetroAchievements; IA opcional para mapa de capítulos,
+"Onde estou?", dicas em quatro níveis e lista de colecionáveis por área; mapas e vídeos da área
+vindos da wiki; recomendações calculadas localmente; painel de estatísticas; aviso de jogos
+parados; README (pt-BR e en) e LICENSE (MIT, Eduardo Bolize).
 
 Em stand-by por decisão do usuário (não integrar sem ele pedir):
 
 - **Reddit:** os termos da API restringem o uso do conteúdo com IA; não foi integrado.
 - **PCGamingWiki:** a API respondeu com um desafio anti-robô da Cloudflare; não foi integrado.
 
-Só o Claude Code (CLI) foi testado com um modelo de verdade: "Testar conexão" e a explicação
-das recomendações (Fase 3) responderam. Os outros provedores foram testados apenas com dublês
-(um executável falso, um servidor compatível com OpenAI). O mapa de capítulos, as dicas e o
-checklist da Fase 2 ainda não rodaram com um modelo real.
+O que nunca rodou contra o serviço de verdade (só com respostas simuladas nos testes): PSN,
+Xbox/OpenXBL e RetroAchievements, porque exigem a conta do usuário. Da IA, só o Claude Code
+(CLI) foi testado com um modelo real ("Testar conexão" e a explicação das recomendações); o mapa
+de capítulos, as dicas e o checklist ainda não.
+
+O Lighthouse não foi rodado (não está instalado; baixá-lo exige autorização do usuário). No
+lugar, uma checagem própria de contraste, rótulos e nomes de controles passou sem falhas em
+cinco telas, nos dois temas.
 
 O desenho das telas da Fase 1 está em [docs/wireframes-fase-1.md](docs/wireframes-fase-1.md).
 
@@ -113,8 +117,40 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   (se configurada), depois a Wikipedia; o usuário pode trocar. A escolha fica em `settings`.
 - **Ponto sem volta:** avançar para uma etapa marcada assim devolve um aviso em vez de gravar; só
   grava com `confirmPointOfNoReturn`.
-- **Formato de export na versão 2** (`checkpoints.bossName`). Arquivos da versão 1 são convertidos
-  em `EXPORT_MIGRATIONS`.
+- **Formato de export na versão 3.** A 2 trouxe `checkpoints.bossName`; a 3 só marca que PSN e
+  Xbox passaram a ser origens válidas (arquivos antigos não mudam). Conversões em
+  `EXPORT_MIGRATIONS`.
+- **PSN é não oficial e opcional** (`sources/psn/`): usa os endereços do app oficial da
+  PlayStation com o token NPSSO que o usuário copia da própria sessão. Só leitura. O token e o
+  refresh token ficam no cofre; a tela de ajustes e o README avisam que foge dos termos da Sony.
+  As requisições seguem o projeto comunitário `psn-api`, sem tê-lo como dependência.
+- **Xbox passa pelo OpenXBL** (`sources/xbox/`), serviço de terceiros: a chave é do usuário e os
+  dados passam pelo servidor deles (avisado na tela). 150 consultas por hora no plano grátis.
+- **Importação de console reaproveita a tela da Steam** (`consoles/service.ts`, rota
+  `/import/:fonte`). Console só dá o nome do jogo, então a busca na IGDB acontece na importação,
+  por título exato depois de limpo, preferindo o lançamento naquele console. Jogo que já está na
+  biblioteca é vinculado, nunca duplicado.
+- **Uma sincronização de conquistas para todas as contas** (`achievements/service.ts`,
+  `syncAchievements`): Steam, PSN, Xbox e RetroAchievements viram a mesma lista. Com o jogo em
+  mais de uma conta, vale a da plataforma em que o usuário joga (`achievementLinkFor`).
+- **RetroAchievements é vinculado à mão**: a API não busca por nome, então o usuário cola o
+  número ou o endereço da página do jogo. As marcações de progressão e perdível do próprio site
+  valem mais que a heurística de nomes.
+- **Todo texto de IA sai no idioma da interface** (`ai/prompts/language.ts`): a regra diz
+  explicitamente "seja qual for o idioma das fontes" e manda manter nomes próprios como o jogo
+  escreve. Todo prompt novo com texto para o usuário deve usar `languageRule` e levar o
+  `locale` na chave de cache.
+- **Mapas e vídeos não usam IA** (`assist/media.ts`): mapas são arquivos de imagem que a wiki do
+  jogo já tem, escolhidos pelo nome, mostrados como miniatura com link para a página do arquivo
+  na wiki; vídeos são resultados do YouTube pela busca web (se houver) mais um link de busca
+  pronto. Nada é buscado antes de a seção ser aberta.
+- **Estatísticas e avisos de jogo parado** (`stats/service.ts`) são contados do que já está no
+  banco, sem fonte nem IA. Horas vêm das jogatinas; o diário entra quando a jogatina não tem
+  horas, e é a única origem de datas. O prazo do aviso é a configuração `nudge.after_days` (14).
+- **Gráficos sem biblioteca**: barras em HTML e CSS, uma cor só (a de destaque), todo valor
+  escrito ao lado da barra, de modo que a lista também serve de tabela.
+- **Grade da biblioteca**: os cartões usam `content-visibility: auto` (`.game-card`), então o
+  navegador só desenha os que estão perto da tela. Não há virtualização por JavaScript.
 - **Recomendações não guardam nada no banco**: tudo é recalculado a cada pedido a partir da
   biblioteca (`recommendations/`). A Fase 3 não mudou o schema nem o formato de export.
 - **Perfil de gosto** (`recommendations/profile.ts`, funções puras): cada jogo com opinião vira um
@@ -147,7 +183,7 @@ apps/
       config.ts, paths.ts    host, porta, pasta de dados por SO, trava "fora do repositório"
       errors.ts              HttpError e o tradutor de erros para `{ error, message }`
       routes/                rotas HTTP por área (library, achievements, sources, transfer,
-                             ai, assist, recommendations)
+                             ai, assist, recommendations, stats)
       library/               biblioteca, jogatinas, tempos, diário, reviews, "onde estou"
       achievements/          sincronização da Steam, heurística de história, funil de abandono
       steam/                 prévia e importação da biblioteca, sincronização de horas
@@ -155,10 +191,14 @@ apps/
       sources/               adapter.ts, types.ts, http, rate limiter, cache
         igdb/ steam/ hltb/   um adaptador por pasta, com schema, normalização, testes e fixtures
         wiki/ web-search/    MediaWiki (Fandom, Wikipedia…) e busca web (SearXNG, Brave, Tavily)
+        psn/ xbox/           contas de console: jogos e troféus/conquistas
+        retroachievements/   conquistas de jogos retrô
       secrets/               cofre de chaves (keychain, arquivo, memória)
       settings/              registro tipado do que vai na tabela `settings`
       ai/                    provider.ts (contrato), cli.ts (execução sem shell), pipeline.ts,
                              service.ts (provedor ativo), providers/ (cli, api) e prompts/
+      consoles/              prévia e importação da biblioteca da PSN e do Xbox
+      stats/                 painel de estatísticas e avisos de jogo parado
       recommendations/       profile.ts (perfil de gosto), similarity.ts (parecidos e formato
                              das conquistas), service.ts (as listas e a explicação por IA)
       assist/                wiki do jogo, mapa de capítulos, "onde estou", dicas, checklist de
@@ -176,13 +216,14 @@ apps/
       components/            Shell (casca + 3 botões), AddGameDialog, SourceForms, AiSettings,
                              Spoiler (spoiler shield), Recommendations (lista, motivos e
                              "Explicar com IA"), ui
-      pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport, Settings,
-                             AiUsage, Recommendations
+      pages/                 Library, Game (+ game/ com as abas), Setup, SteamImport (a tela
+                             de importação de Steam, PSN e Xbox), Settings, AiUsage,
+                             Recommendations, Stats
 packages/
   shared/src/                enums, constantes, proveniência e contracts/
 e2e/                         testes Playwright (rodam sobre a biblioteca de exemplo do seed) e
                              fake-llm.mjs (IA de mentira para os testes)
-docs/                        plano das fases e wireframes
+docs/                        plano das fases, wireframes e screenshots/ (capturas do README)
 ```
 
 Destino das próximas fases: novas fontes em `apps/server/src/sources/<fonte>/`; novas funções de
@@ -250,7 +291,8 @@ O server também aplica as migrações pendentes sozinho ao iniciar.
   JSON. Mensagens de erro de fontes e de IA nunca incluem chaves.
 - **Fontes externas:** consultar a documentação oficial atual antes de implementar; respeitar termos
   de uso e rate limits; sem scraping de sites que proíbem. Uma fonte que falha nunca quebra o app.
-- **Commits:** atômicos, mensagens convencionais em inglês.
+- **Commits:** atômicos, mensagens convencionais em inglês, **sem linha de coautoria**: o
+  usuário é o único autor no histórico.
 
 ## Regras de execução
 
