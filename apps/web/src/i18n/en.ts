@@ -1039,6 +1039,33 @@ export const en: Messages = {
     listTime: 'Time',
     favorite: 'Favourite',
   },
+  voice: {
+    start: 'Speak instead of typing: {field}',
+    stop: 'Stop and use what I said: {field}',
+    startShort: 'Speak',
+    stopShort: 'Stop',
+    listening: 'Listening… click the square when you are done.',
+    downloading:
+      'Loading speech recognition (the first time, it downloads about 80 MB): {percent}%',
+    transcribing: 'Turning speech into text…',
+    settingsTitle: 'Voice',
+    engine: 'Speech recognition',
+    engineAuto: "Automatic: the browser's when there is one, otherwise the local one",
+    engineBrowser: "The browser's: fast, but the audio goes to Google (Chrome) or Microsoft (Edge)",
+    engineLocal: 'Local (Whisper): the audio never leaves your PC; downloads about 80 MB once',
+    engineNote:
+      "Brave turns off the browser's recognition; there, automatic uses the local one. The choice applies to this browser only.",
+    unavailable: 'This browser cannot use the microphone for this.',
+    errors: {
+      mic_denied:
+        'The browser did not allow the microphone. Allow microphone access for this address.',
+      no_speech: 'I heard nothing. Try again, closer to the microphone.',
+      browser_failed:
+        "The browser's recognition failed. In Settings › Voice, choose the local one.",
+      local_failed:
+        'Could not turn the speech into text. On first use, check the internet connection to download the model.',
+    },
+  },
   time: {
     hours: '{hours}h',
     hoursMinutes: '{hours}h {minutes}min',

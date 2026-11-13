@@ -183,7 +183,7 @@ test('exports the library, loses a game and gets it back by importing', async ({
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await page.getByRole('button', { name: 'Escrever review' }).click();
   await page.getByRole('spinbutton', { name: 'Nota geral' }).fill('8.5');
-  await page.getByLabel('O que você achou?').fill('Vale cada minuto.');
+  await page.getByRole('textbox', { name: 'O que você achou?' }).fill('Vale cada minuto.');
   await page.getByRole('button', { name: 'Salvar review' }).click();
   await expect(page.getByText('Vale cada minuto.')).toBeVisible();
 

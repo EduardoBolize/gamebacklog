@@ -1040,6 +1040,33 @@ export const ptBR = {
     listTime: 'Tempo',
     favorite: 'Favorito',
   },
+  voice: {
+    start: 'Falar em vez de escrever: {field}',
+    stop: 'Parar e usar o que eu disse: {field}',
+    startShort: 'Falar',
+    stopShort: 'Parar',
+    listening: 'Ouvindo… clique no quadrado quando terminar de falar.',
+    downloading:
+      'Carregando o reconhecimento de voz (na primeira vez, baixa uns 80 MB): {percent}%',
+    transcribing: 'Transformando a fala em texto…',
+    settingsTitle: 'Voz',
+    engine: 'Reconhecimento de voz',
+    engineAuto: 'Automático: o do navegador quando existe, senão o local',
+    engineBrowser:
+      'Do navegador: rápido, mas o áudio vai para o Google (Chrome) ou a Microsoft (Edge)',
+    engineLocal: 'Local (Whisper): o áudio não sai do seu PC; baixa uns 80 MB uma vez',
+    engineNote:
+      'O Brave desliga o reconhecimento do navegador; nele, o automático usa o local. A escolha vale só para este navegador.',
+    unavailable: 'Este navegador não consegue usar o microfone para isso.',
+    errors: {
+      mic_denied:
+        'O navegador não deixou usar o microfone. Libere o acesso ao microfone para este endereço.',
+      no_speech: 'Não ouvi nada. Tente de novo, mais perto do microfone.',
+      browser_failed: 'O reconhecimento do navegador falhou. Em Ajustes › Voz, escolha o local.',
+      local_failed:
+        'Não deu para transformar a fala em texto. Confira a internet no primeiro uso, para baixar o modelo.',
+    },
+  },
   time: {
     hours: '{hours}h',
     hoursMinutes: '{hours}h {minutes}min',

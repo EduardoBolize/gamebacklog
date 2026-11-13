@@ -7,6 +7,14 @@ import { AiSection } from '../components/AiSettings.tsx';
 import { SourceRow } from '../components/SourceForms.tsx';
 import { ErrorNote, Loading } from '../components/ui.tsx';
 import { LOCALES, LOCALE_NAMES, useI18n } from '../i18n/index.tsx';
+import {
+  VOICE_ENGINES,
+  browserRecognitionWorks,
+  localRecognitionWorks,
+  readVoicePreference,
+  writeVoicePreference,
+  type VoicePreference,
+} from '../voice/engine.ts';
 
 function SourcesSection() {
   const { t, tn } = useI18n();
@@ -426,6 +434,53 @@ function AppearanceSection() {
   );
 }
 
+function VoiceSection() {
+  const { t } = useI18n();
+  const [preference, setPreference] = useState<VoicePreference>(readVoicePreference);
+  const available = { browser: browserRecognitionWorks(), local: localRecognitionWorks() };
+  const labels: Record<
+    VoicePreference,
+    'voice.engineAuto' | 'voice.engineBrowser' | 'voice.engineLocal'
+  > = {
+    auto: 'voice.engineAuto',
+    browser: 'voice.engineBrowser',
+    local: 'voice.engineLocal',
+  };
+  return (
+    <section id="voice" aria-labelledby="voice-title" className="grid scroll-mt-20 gap-4">
+      <h2 id="voice-title" className="text-xl">
+        {t('voice.settingsTitle')}
+      </h2>
+      {!available.browser && !available.local ? (
+        <p className="note">{t('voice.unavailable')}</p>
+      ) : (
+        <fieldset>
+          <legend className="label">{t('voice.engine')}</legend>
+          <div className="grid gap-1">
+            {VOICE_ENGINES.map((option) => (
+              <label key={option} className="flex min-h-11 items-center gap-2 text-sm sm:min-h-9">
+                <input
+                  type="radio"
+                  name="voice-engine"
+                  className="accent-accent"
+                  checked={preference === option}
+                  disabled={option !== 'auto' && !available[option]}
+                  onChange={() => {
+                    setPreference(option);
+                    writeVoicePreference(option);
+                  }}
+                />
+                <span>{t(labels[option])}</span>
+              </label>
+            ))}
+          </div>
+          <p className="note mt-2">{t('voice.engineNote')}</p>
+        </fieldset>
+      )}
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const { t } = useI18n();
   return (
@@ -450,6 +505,11 @@ export function SettingsPage() {
               </a>
             </li>
             <li>
+              <a href="#voice" className="link">
+                {t('voice.settingsTitle')}
+              </a>
+            </li>
+            <li>
               <a href="#appearance" className="link">
                 {t('settings.appearance')}
               </a>
@@ -460,6 +520,7 @@ export function SettingsPage() {
       <SourcesSection />
       <AiSection />
       <DataSection />
+      <VoiceSection />
       <AppearanceSection />
     </div>
   );

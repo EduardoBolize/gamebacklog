@@ -24,6 +24,9 @@ switched to English in Settings.
   hours are left.
 - **With AI (optional)**: chapter map, free-text "Where am I?", hints on four spoiler-safe
   levels, collectibles and missables per area, with a warning before a point of no return.
+- **Speak instead of typing**: a microphone beside "Where am I?", hints, diary and review. It
+  uses the browser's recognition or, to keep the audio on your PC, Whisper running in the
+  browser itself (about 80 MB downloaded the first time). Choose in Settings › Voice.
 - **Wiki maps**: the game's interactive map (from Fandom and wiki.gg wikis, such as Elden Ring's),
   with search, filters and "you are here", plus map images and videos of the area.
 - **Game route**: the areas, the paths out of each and what opens them. "Where am I?" understands
@@ -167,7 +170,7 @@ components are `.tsx` files, counted as TypeScript).
 
 | Part              | What it uses                                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| Interface         | React 19, Vite, Tailwind CSS 4, TanStack Query                                                                |
+| Interface         | React 19, Vite, Tailwind CSS 4, TanStack Query; voice with the Web Speech API or Whisper (Transformers.js)    |
 | Server            | Node.js 22+ (runs TypeScript directly), Fastify 5                                                             |
 | Data              | SQLite with Drizzle ORM and better-sqlite3; keys in the OS keychain                                           |
 | Contracts         | Zod, shared by interface and server                                                                           |

@@ -1,5 +1,5 @@
 import { HINT_LEVELS, type HintKind, type HintLevel, type HintResponse } from '@gamebacklog/shared';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useApiMutation } from '../../api.ts';
 import { assistApi, useHints } from '../../api-assist.ts';
@@ -8,6 +8,8 @@ import { ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
 import { AreaMedia } from './AreaMedia.tsx';
 import { SourceList } from './ChapterMapSection.tsx';
+import { VoiceButton } from '../../components/VoiceButton.tsx';
+import { appendDictation } from '../../voice/engine.ts';
 
 const KINDS: [
   HintKind,
@@ -119,6 +121,7 @@ export function HintsTab({ runId, initialKind }: { runId: string; initialKind: H
   const hints = useHints(runId, locale);
   const [kind, setKind] = useState<HintKind>(initialKind);
   const [stuckOn, setStuckOn] = useState('');
+  const stuckOnId = useId();
   // The ladder is tied to what was asked: changing the question starts a new one.
   const [asked, setAsked] = useState<{ kind: HintKind; stuckOn: string } | null>(null);
 
@@ -175,18 +178,25 @@ export function HintsTab({ runId, initialKind }: { runId: string; initialKind: H
             ))}
           </div>
         </fieldset>
-        <label>
-          <span className="label">
+        <div>
+          <label htmlFor={stuckOnId} className="label">
             {t('hintLadder.stuckOn')} ({t('app.optional')})
-          </span>
-          <input
-            className="field"
-            maxLength={300}
-            placeholder={t('hintLadder.stuckOnPlaceholder')}
-            value={stuckOn}
-            onChange={(event) => setStuckOn(event.target.value)}
-          />
-        </label>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id={stuckOnId}
+              className="field min-w-0 flex-1"
+              maxLength={300}
+              placeholder={t('hintLadder.stuckOnPlaceholder')}
+              value={stuckOn}
+              onChange={(event) => setStuckOn(event.target.value)}
+            />
+            <VoiceButton
+              fieldLabel={t('hintLadder.stuckOn')}
+              onText={(text) => setStuckOn((current) => appendDictation(current, text, 300))}
+            />
+          </div>
+        </div>
         <button type="submit" className="btn btn-primary justify-self-start">
           {t('hintLadder.stuck')}
         </button>

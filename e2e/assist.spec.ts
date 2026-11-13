@@ -94,7 +94,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   // "Where am I?" in Portuguese: matched to the map locally, with no AI call.
   await page.goto(`/games/${entryId}`);
   const before = await chatRequests(request);
-  await page.getByLabel('Onde estou?').fill('acabei de entrar na Árvore Deku');
+  await page.getByRole('textbox', { name: 'Onde estou?' }).fill('acabei de entrar na Árvore Deku');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Entendi: você está em Inside the Deku Tree.')).toBeVisible();
   await expect(page.getByText('Reconhecido sem usar IA.')).toBeVisible();
@@ -120,7 +120,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
 
   // Hint ladder: level 1, then level 2, each fetched only when asked.
   await page.getByLabel('Como avançar').check();
-  await page.getByLabel(/Onde travei/).fill('a teia no chão');
+  await page.getByRole('textbox', { name: /Onde travei/ }).fill('a teia no chão');
   await page.getByRole('button', { name: 'Estou com dificuldade' }).click();
   await expect(page.getByText('Abra o nível anterior primeiro.').first()).toBeVisible();
 
@@ -133,7 +133,7 @@ test('connects an AI, places the player, climbs the hint ladder and reuses the c
   // The same request again comes from the cache: zero tokens, no new call to the AI.
   await page.reload();
   await page.getByLabel('Como avançar').check();
-  await page.getByLabel(/Onde travei/).fill('a teia no chão');
+  await page.getByRole('textbox', { name: /Onde travei/ }).fill('a teia no chão');
   await page.getByRole('button', { name: 'Estou com dificuldade' }).click();
   await page.getByRole('button', { name: 'Ver Nível 1 · empurrão' }).click();
   await expect(page.getByText('Dica de nível 1 para o teste.')).toBeVisible();
@@ -152,7 +152,7 @@ test('warns before recording progress past a point of no return', async ({ page,
   const entryId = await createGame(request, unique('Jogo com Ponto sem Volta'));
   await page.goto(`/games/${entryId}`);
 
-  await page.getByLabel('Onde estou?').fill('cheguei no Templo do Tempo');
+  await page.getByRole('textbox', { name: 'Onde estou?' }).fill('cheguei no Templo do Tempo');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Ponto sem volta à frente' });
@@ -164,7 +164,9 @@ test('warns before recording progress past a point of no return', async ({ page,
   await expect(page.getByText('← você está aqui')).toHaveCount(0);
 
   // Confirming does. The text is still in the field, since nothing was saved.
-  await expect(page.getByLabel('Onde estou?')).toHaveValue('cheguei no Templo do Tempo');
+  await expect(page.getByRole('textbox', { name: 'Onde estou?' })).toHaveValue(
+    'cheguei no Templo do Tempo',
+  );
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await dialog.getByRole('button', { name: 'Registrar mesmo assim' }).click();
   await expect(page.getByText('Entendi: você está em Temple of Time.')).toBeVisible();

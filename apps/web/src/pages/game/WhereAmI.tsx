@@ -9,6 +9,8 @@ import { ApiError, api, useApiMutation, useFunnel } from '../../api.ts';
 import { assistApi } from '../../api-assist.ts';
 import { ErrorNote, Modal, useErrorMessage } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { VoiceButton } from '../../components/VoiceButton.tsx';
+import { appendDictation } from '../../voice/engine.ts';
 
 type Warning = NonNullable<ReportProgressResponse['warning']>;
 
@@ -156,14 +158,18 @@ export function WhereAmI({ run }: { run: Playthrough }) {
       <h2 className="section-title">
         <label htmlFor={inputId}>{t('game.whereAmI')}</label>
       </h2>
-      <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+      <form onSubmit={submit} className="flex flex-wrap gap-2">
         <input
           id={inputId}
-          className="field"
+          className="field min-w-0 flex-1 basis-60"
           maxLength={500}
           placeholder={t('game.whereAmIPlaceholder')}
           value={text}
           onChange={(event) => setText(event.target.value)}
+        />
+        <VoiceButton
+          fieldLabel={t('game.whereAmI')}
+          onText={(dictated) => setText((current) => appendDictation(current, dictated, 500))}
         />
         <button
           type="submit"

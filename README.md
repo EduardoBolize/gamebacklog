@@ -24,6 +24,9 @@ dados ficam num arquivo SQLite na sua máquina.
 - **Com IA (opcional)**: mapa de capítulos, "Onde estou?" em texto livre, dicas em quatro
   níveis sem spoiler, lista de colecionáveis e perdíveis por área, com aviso antes de um ponto
   sem volta.
+- **Falar em vez de escrever**: um microfone ao lado de "Onde estou?", das dicas, do diário e da
+  review. Usa o reconhecimento do navegador ou, para o áudio não sair do PC, o Whisper rodando
+  no próprio navegador (baixa uns 80 MB na primeira vez). Escolha em Ajustes › Voz.
 - **Mapas da wiki**: o mapa interativo do jogo (das wikis da Fandom e do wiki.gg, como o do
   Elden Ring), com busca, filtros e "você está aqui", mais as imagens de mapa e vídeos da área.
 - **Rota do jogo**: as áreas, com os caminhos de cada uma e o que abre cada caminho. "Onde estou?"
@@ -170,7 +173,7 @@ componentes React são arquivos `.tsx`, que contam como TypeScript).
 
 | Parte              | O que usa                                                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Interface          | React 19, Vite, Tailwind CSS 4, TanStack Query                                                                |
+| Interface          | React 19, Vite, Tailwind CSS 4, TanStack Query; voz com Web Speech API ou Whisper (Transformers.js)           |
 | Servidor           | Node.js 22+ (executa TypeScript direto), Fastify 5                                                            |
 | Dados              | SQLite com Drizzle ORM e better-sqlite3; chaves no cofre do SO                                                |
 | Contratos          | Zod, compartilhado entre interface e servidor                                                                 |

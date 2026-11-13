@@ -116,6 +116,9 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   100% / platina" abre `?tab=achievements`. A lista da biblioteca (`GET /api/library`) traz
   `playedMinutes`, `lastPlayedAt`, `progressPercent` (horas contra o tempo do objetivo, 100 ao
   zerar), `achievementCount` e `accounts` (Steam, PSN…), calculados no server a cada pedido.
+- **Transformers.js** (`@huggingface/transformers`) é a única dependência do web fora do
+  básico, aprovada para a voz local. Os runtimes de Node dela (`onnxruntime-node`, `protobufjs`)
+  ficam em `ignoredBuiltDependencies`.
 - **Web sem biblioteca de componentes nem de ícones**: controles nativos (`<dialog>`, `<select>`,
   `<details>`), ícones SVG próprios em `components/icons.tsx`.
 - **Todo provedor de IA só precisa gerar texto** (`AiProviderCore.generate`). Saída estruturada é
@@ -207,6 +210,13 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
 - **Wiki geral (Wikipedia)**: toda busca leva o título do jogo e só entram páginas que citam o
   jogo (`isGeneralWiki`, `collectWikiDocs`); as dicas leem antes as wikis do jogo no Fandom e no
   wiki.gg (`findGameWikis`), e a aba de mídia não busca imagens de área na Wikipedia.
+- **Voz** (`apps/web/src/voice/`, `components/VoiceButton.tsx`): microfone ao lado de "Onde
+  estou?", "Onde travei" (dicas), nota do diário e texto da review. O que é dito é somado ao
+  campo, nunca enviado sozinho. Dois motores: o do navegador (Web Speech API; o áudio vai para
+  o Google/Microsoft, e o Brave o desliga) e o Whisper local (`onnx-community/whisper-base`, q8,
+  ~80 MB) num Web Worker com Transformers.js; o modelo vem do Hugging Face uma vez e fica no
+  cache do navegador, e o runtime ONNX vai no build. "Automático" usa o do navegador quando
+  funciona. A escolha fica no `localStorage` (é do navegador, não vai no export).
 - **Mapas e vídeos não usam IA** (`assist/media.ts`): mapas são arquivos de imagem que a wiki do
   jogo já tem, escolhidos pelo nome, mostrados como miniatura com link para a página do arquivo
   na wiki; vídeos são resultados do YouTube pela busca web (se houver) mais um link de busca

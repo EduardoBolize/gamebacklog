@@ -1,9 +1,11 @@
 import type { Playthrough, Session } from '@gamebacklog/shared';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api, useApiMutation, useSessions } from '../../api.ts';
 import { ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { VoiceButton } from '../../components/VoiceButton.tsx';
+import { appendDictation } from '../../voice/engine.ts';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const today = () => {
@@ -39,6 +41,7 @@ function SessionForm({
 }) {
   const { t } = useI18n();
   const [values, setValues] = useState(initial);
+  const noteId = useId();
   const duration = Number(values.hours || 0) * 60 + Number(values.minutes || 0);
 
   function submit(event: FormEvent) {
@@ -89,17 +92,31 @@ function SessionForm({
           </div>
         </fieldset>
       </div>
-      <label>
-        <span className="label">{t('diary.note')}</span>
-        <textarea
-          className="field"
-          rows={2}
-          maxLength={2000}
-          placeholder={t('diary.notePlaceholder')}
-          value={values.note}
-          onChange={(event) => setValues({ ...values, note: event.target.value })}
-        />
-      </label>
+      <div>
+        <label htmlFor={noteId} className="label">
+          {t('diary.note')}
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <textarea
+            id={noteId}
+            className="field min-w-0 flex-1"
+            rows={2}
+            maxLength={2000}
+            placeholder={t('diary.notePlaceholder')}
+            value={values.note}
+            onChange={(event) => setValues({ ...values, note: event.target.value })}
+          />
+          <VoiceButton
+            fieldLabel={t('diary.note')}
+            onText={(text) =>
+              setValues((current) => ({
+                ...current,
+                note: appendDictation(current.note, text, 2000),
+              }))
+            }
+          />
+        </div>
+      </div>
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary" disabled={pending || duration < 1}>
           {t('app.save')}

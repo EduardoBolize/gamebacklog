@@ -9,6 +9,8 @@ import type { FormEvent } from 'react';
 import { api, useApiMutation, useReviews } from '../../api.ts';
 import { ChipInput, ErrorNote, Loading } from '../../components/ui.tsx';
 import { useI18n } from '../../i18n/index.tsx';
+import { VoiceButton } from '../../components/VoiceButton.tsx';
+import { appendDictation } from '../../voice/engine.ts';
 
 const SCORE_KEYS = ['score', ...REVIEW_SUBSCORE_KEYS] as const;
 type ScoreKey = (typeof SCORE_KEYS)[number];
@@ -112,6 +114,7 @@ function ReviewForm({
 }) {
   const { t } = useI18n();
   const [draft, setDraft] = useState(initial);
+  const bodyId = useId();
   const save = useApiMutation((body: SaveReviewRequest) => api.saveReview(entryId, body));
 
   function submit(event: FormEvent) {
@@ -132,16 +135,30 @@ function ReviewForm({
         ))}
       </div>
 
-      <label>
-        <span className="label">{t('review.body')}</span>
-        <textarea
-          className="field"
-          rows={6}
-          maxLength={20000}
-          value={draft.body ?? ''}
-          onChange={(event) => setDraft({ ...draft, body: event.target.value })}
-        />
-      </label>
+      <div>
+        <label htmlFor={bodyId} className="label">
+          {t('review.body')}
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <textarea
+            id={bodyId}
+            className="field min-w-0 flex-1"
+            rows={6}
+            maxLength={20000}
+            value={draft.body ?? ''}
+            onChange={(event) => setDraft({ ...draft, body: event.target.value })}
+          />
+          <VoiceButton
+            fieldLabel={t('review.body')}
+            onText={(text) =>
+              setDraft((current) => ({
+                ...current,
+                body: appendDictation(current.body ?? '', text, 20000),
+              }))
+            }
+          />
+        </div>
+      </div>
 
       <ChipInput
         label={t('review.pros')}

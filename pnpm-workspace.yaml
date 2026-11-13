@@ -11,3 +11,6 @@ onlyBuiltDependencies:
 # needs a C++ toolchain most users don't have.
 ignoredBuiltDependencies:
   - better-sqlite3
+  # Transformers.js runs in the browser (voice input); its Node-only runtimes are never used.
+  - onnxruntime-node
+  - protobufjs
