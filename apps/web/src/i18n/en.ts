@@ -659,6 +659,8 @@ export const en: Messages = {
     reveal: 'Show the solution',
     hidden: 'Hidden to avoid spoilers.',
     revealGeneric: 'Show',
+    fromKnowledge:
+      'From what the AI knows of this game; none of the sources read covered this part.',
     sources: 'Sources',
     cached: 'from cache · 0 tokens',
     earlier: 'Hints already opened at this step',

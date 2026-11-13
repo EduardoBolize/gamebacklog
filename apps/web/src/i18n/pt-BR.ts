@@ -659,6 +659,7 @@ export const ptBR = {
     reveal: 'Mostrar a solução',
     hidden: 'Conteúdo oculto para evitar spoiler.',
     revealGeneric: 'Mostrar',
+    fromKnowledge: 'Do que a IA sabe deste jogo; nenhuma fonte consultada cobria este trecho.',
     sources: 'Fontes',
     cached: 'do cache · 0 tokens',
     earlier: 'Dicas já abertas nesta etapa',

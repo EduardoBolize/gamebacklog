@@ -38,8 +38,8 @@ Em stand-by por decisão do usuário (não integrar sem ele pedir):
 
 O que nunca rodou contra o serviço de verdade (só com respostas simuladas nos testes): PSN,
 Xbox/OpenXBL e RetroAchievements, porque exigem a conta do usuário. Da IA, só o Claude Code
-(CLI) foi testado com um modelo real ("Testar conexão" e a explicação das recomendações); o mapa
-de capítulos, as dicas e o checklist ainda não.
+(CLI) foi testado com um modelo real ("Testar conexão", a explicação das recomendações e as
+dicas); o mapa de capítulos e o checklist ainda não.
 
 O Lighthouse não foi rodado (não está instalado; baixá-lo exige autorização do usuário). No
 lugar, uma checagem própria de contraste, rótulos e nomes de controles passou sem falhas em
@@ -199,6 +199,14 @@ Não reabrir. Diante de um bloqueio real, parar e perguntar.
   explicitamente "seja qual for o idioma das fontes" e manda manter nomes próprios como o jogo
   escreve. Todo prompt novo com texto para o usuário deve usar `languageRule` e levar o
   `locale` na chave de cache.
+- **Dicas (`hint.v3`)**: a IA recebe a identidade do jogo (ano, nomes alternativos, plataforma
+  da jogatina) e nunca pergunta a versão. Fontes primeiro; quando não cobrem o trecho, ela
+  responde com o que sabe do jogo, sem inventar, e diz isso em `basis` (`sources`/`knowledge`):
+  a tela mostra "Do que a IA sabe deste jogo" em vez de fontes. Cada nível recebe os níveis já
+  abertos para ir um passo além. Dicas de versões antigas do prompt não aparecem mais.
+- **Wiki geral (Wikipedia)**: toda busca leva o título do jogo e só entram páginas que citam o
+  jogo (`isGeneralWiki`, `collectWikiDocs`); as dicas leem antes as wikis do jogo no Fandom e no
+  wiki.gg (`findGameWikis`), e a aba de mídia não busca imagens de área na Wikipedia.
 - **Mapas e vídeos não usam IA** (`assist/media.ts`): mapas são arquivos de imagem que a wiki do
   jogo já tem, escolhidos pelo nome, mostrados como miniatura com link para a página do arquivo
   na wiki; vídeos são resultados do YouTube pela busca web (se houver) mais um link de busca

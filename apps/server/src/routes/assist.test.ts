@@ -15,7 +15,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { matchCheckpointLocally } from '../assist/progress.ts';
 import { renderSources, wikiCandidates } from '../assist/wiki.ts';
-import { achievements, checkpoints, collectibles } from '../db/schema/index.ts';
+import { achievements, checkpoints, collectibles, hintsCache } from '../db/schema/index.ts';
 import { catalogGame, createTestApp, type TestApp } from '../test/context.ts';
 
 let t: TestApp;
@@ -613,6 +613,73 @@ describe('hint ladder rules', () => {
     expect(
       (await call<RevealedHintsResponse>('GET', `/api/playthroughs/${runId}/hints`)).body.items,
     ).toEqual([]);
+  });
+
+  it('tells the AI which game and version is open, and lets it answer from what it knows', async () => {
+    const runId = await inDekuTree();
+    t.ai.answers = [{ hint: 'Olhe para cima.', basis: 'knowledge', sources: [] }];
+    const response = await hint(runId, { kind: 'puzzle', level: 1, stuckOn: 'primeira sala' });
+
+    const request = t.ai.requests[0];
+    expect(request?.prompt).toContain('Game: The Legend of Zelda: Ocarina of Time (1998)');
+    expect(request?.system).toContain('Never ask which version');
+    expect(request?.system).toContain('well-established knowledge of this game');
+    // Answered from knowledge, citing nothing: no page is passed off as its source.
+    expect(response.body).toMatchObject({ basis: 'knowledge', sources: [] });
+
+    const revealed = await call<RevealedHintsResponse>('GET', `/api/playthroughs/${runId}/hints`);
+    expect(revealed.body.items).toMatchObject([{ level: 1, basis: 'knowledge' }]);
+  });
+
+  it('shows the next rung the hints already given, so it goes a step further', async () => {
+    const runId = await inDekuTree();
+    t.ai.answers = [
+      { hint: 'Repare no teto.', sources: [] },
+      { hint: 'Suba e pule.', sources: [] },
+    ];
+    await hint(runId, { kind: 'puzzle', level: 1, stuckOn: 'web' });
+    await hint(runId, { kind: 'puzzle', level: 2, stuckOn: 'web' });
+    expect(t.ai.requests[0]?.prompt).not.toContain('Already shown');
+    expect(t.ai.requests[1]?.prompt).toContain('Already shown:\nLevel 1: Repare no teto.');
+  });
+
+  it('no longer shows hints written by an older prompt', async () => {
+    const runId = await inDekuTree();
+    t.ai.answers = [{ hint: 'nova', sources: [] }];
+    await hint(runId, { kind: 'general', level: 1 });
+    t.ctx.db.update(hintsCache).set({ promptVersion: 'hint.v2' }).run();
+    const revealed = await call<RevealedHintsResponse>('GET', `/api/playthroughs/${runId}/hints`);
+    expect(revealed.body.items).toEqual([]);
+  });
+
+  it('on Wikipedia, searches with the game title and drops pages about something else', async () => {
+    // No game wiki answers: the game falls back to Wikipedia, which knows everything.
+    t.sources.wikiHosts = ['en.wikipedia.org'];
+    t.sources.wikiPages = {
+      'The Fall (band)': [{ heading: '', text: 'The Fall were an English post-punk band.' }],
+      'Ocarina of Time': [
+        {
+          heading: 'The Fall',
+          text: 'In The Legend of Zelda: Ocarina of Time, the Fall is a pit below the web.',
+        },
+      ],
+    };
+    t.ai.connected = true;
+    const { entryId, runId } = await addOcarina();
+    await call('PUT', `/api/library/${entryId}/map`, {
+      checkpoints: [{ name: 'The Fall', aliases: [], isPointOfNoReturn: false, bossName: null }],
+    });
+    const checkpointId = (await mapOf(runId)).map?.checkpoints[0]?.id;
+    await call('POST', `/api/playthroughs/${runId}/progress`, { checkpointId });
+
+    t.ai.answers = [{ hint: 'Olhe para baixo.', sources: [1] }];
+    await hint(runId, { kind: 'puzzle', level: 1 });
+
+    const searches = t.sources.wikiCalls.filter((entry) => entry.startsWith('search:The Fall'));
+    expect(searches).toEqual([]);
+    expect(t.sources.wikiCalls).toContain('search:The Legend of Zelda: Ocarina of Time The Fall');
+    expect(t.ai.requests[0]?.prompt).toContain('a pit below the web');
+    expect(t.ai.requests[0]?.prompt).not.toContain('post-punk');
   });
 
   it('asks about the boss of the area without spending an AI call', async () => {

@@ -147,6 +147,25 @@ export interface ContextDoc {
 }
 
 /**
+ * A wiki about everything (Wikipedia) rather than about the game. A search there for a place
+ * name ("The Fall") finds novels and bands, so every query has to carry the game's title and
+ * every page has to be about the game.
+ */
+export const isGeneralWiki = (url: string) => {
+  try {
+    return /(^|\.)wikipedia\.org$/.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+};
+
+/** Whether a page talks about the game, by its title or one of its other names. */
+function mentionsGame(sections: WikiSection[], names: string[]): boolean {
+  const text = ` ${normalizeText(sections.map((section) => `${section.heading} ${section.text}`).join(' '))} `;
+  return names.some((name) => name.length > 2 && text.includes(` ${name} `));
+}
+
+/**
  * Deterministic context: searches the game's wiki for each query and returns the best pages.
  * Never throws — with no wiki, or the wiki down, the AI simply gets less to work with.
  */
@@ -155,26 +174,45 @@ export async function collectWikiDocs(
   gameId: string,
   queries: (string | null | undefined)[],
   maxPages = 3,
+  /** Wikis to read, in order of trust. Defaults to the one chosen for the game. */
+  sites?: WikiSite[],
 ): Promise<ContextDoc[]> {
-  const site = await findWikiForGame(ctx, gameId);
-  if (!site) return [];
+  if (!sites) {
+    const chosen = await findWikiForGame(ctx, gameId);
+    sites = chosen ? [chosen] : [];
+  }
+  if (sites.length === 0) return [];
+
+  const game = requireGame(ctx, gameId);
+  const title = normalizeText(game.title);
+  const names = [game.title, ...game.alternativeTitles].map(normalizeText);
 
   const docs: ContextDoc[] = [];
   const seen = new Set<string>();
-  try {
-    for (const query of queries) {
-      if (!query?.trim() || docs.length >= maxPages) continue;
-      for (const title of await ctx.wiki.search(site, query, 3)) {
-        if (seen.has(title) || docs.length >= maxPages) continue;
-        seen.add(title);
-        const page = await ctx.wiki.getPage(site, title);
-        if (page && page.data.sections.length > 0) {
+  for (const site of sites) {
+    const general = isGeneralWiki(site.articleBase);
+    const asked = new Set<string>();
+    try {
+      for (const raw of queries) {
+        const trimmed = raw?.trim();
+        if (!trimmed || docs.length >= maxPages) continue;
+        const query =
+          general && !normalizeText(trimmed).includes(title) ? `${game.title} ${trimmed}` : trimmed;
+        if (asked.has(normalizeText(query))) continue;
+        asked.add(normalizeText(query));
+        for (const pageTitle of await ctx.wiki.search(site, query, 3)) {
+          const key = `${site.articleBase}${pageTitle}`;
+          if (seen.has(key) || docs.length >= maxPages) continue;
+          seen.add(key);
+          const page = await ctx.wiki.getPage(site, pageTitle);
+          if (!page || page.data.sections.length === 0) continue;
+          if (general && !mentionsGame(page.data.sections, names)) continue;
           docs.push({ ...page.data, provenance: page.provenance });
         }
       }
+    } catch {
+      // Keep whatever was gathered before this wiki failed, and go on to the next one.
     }
-  } catch {
-    // Keep whatever was gathered before the failure.
   }
   return docs;
 }

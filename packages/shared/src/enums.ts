@@ -157,6 +157,11 @@ export const HINT_KINDS = ['general', 'puzzle', 'boss'] as const;
 export const hintKindSchema = z.enum(HINT_KINDS);
 export type HintKind = z.infer<typeof hintKindSchema>;
 
+/** What a hint rests on: the sources it cites, or what the AI knows of the game. */
+export const HINT_BASES = ['sources', 'knowledge'] as const;
+export const hintBasisSchema = z.enum(HINT_BASES);
+export type HintBasis = z.infer<typeof hintBasisSchema>;
+
 /** 1 = nudge, 2 = direction, 3 = specific hint, 4 = full solution (behind the spoiler shield). */
 export const HINT_LEVELS = [1, 2, 3, 4] as const;
 export const hintLevelSchema = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]);

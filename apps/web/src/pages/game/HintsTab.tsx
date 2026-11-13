@@ -27,13 +27,18 @@ const LEVEL_LABEL = {
 function HintText({
   hint,
 }: {
-  hint: Pick<HintResponse, 'level' | 'text' | 'sources'> & { cached?: boolean };
+  hint: Pick<HintResponse, 'level' | 'text' | 'basis' | 'sources'> & { cached?: boolean };
 }) {
   const { t } = useI18n();
   const body = (
     <div className="grid gap-2">
       <p className="max-w-prose whitespace-pre-wrap">{hint.text}</p>
-      <SourceList sources={hint.sources} label={t('hintLadder.sources')} />
+      {/* A hint from what the AI knows of the game says so: there is no page to check it on. */}
+      {hint.basis === 'knowledge' && hint.sources.length === 0 ? (
+        <p className="note">{t('hintLadder.fromKnowledge')}</p>
+      ) : (
+        <SourceList sources={hint.sources} label={t('hintLadder.sources')} />
+      )}
     </div>
   );
   return (

@@ -2,7 +2,7 @@ import type { AreaMediaResponse } from '@gamebacklog/shared';
 import type { AppContext } from '../context.ts';
 import type { WikiImage } from '../sources/wiki/index.ts';
 import { gameOfPlaythrough, loadMap } from './chapter-map.ts';
-import { findWikiForGame, normalizeText } from './wiki.ts';
+import { findWikiForGame, isGeneralWiki, normalizeText } from './wiki.ts';
 
 /**
  * Maps and videos for the area the player is in. No AI: maps are image files the game's wiki
@@ -78,7 +78,8 @@ export async function getAreaMedia(
   let wiki: AreaMediaResponse['wiki'] = null;
   try {
     const site = await findWikiForGame(ctx, game.id);
-    if (site) {
+    // A wiki about everything has files named like any place ("The Fall" → a waterfall).
+    if (site && !isGeneralWiki(site.articleBase)) {
       wiki = { origin: 'wiki', url: site.articleBase, fetchedAt: ctx.now().toISOString() };
       if (checkpoint) {
         const found = [

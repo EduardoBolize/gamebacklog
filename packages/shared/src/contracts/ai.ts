@@ -5,6 +5,7 @@ import {
   aiProviderIdSchema,
   aiProviderKindSchema,
   contentOriginSchema,
+  hintBasisSchema,
   hintKindSchema,
   hintLevelSchema,
   pathWarningKindSchema,
@@ -288,6 +289,7 @@ export const revealedHintsResponseSchema = z.object({
       level: hintLevelSchema,
       stuckOn: z.string().nullable(),
       text: z.string(),
+      basis: hintBasisSchema,
       sources: z.array(provenanceSchema),
     }),
   ),
@@ -299,6 +301,7 @@ export const hintResponseSchema = z.object({
   kind: hintKindSchema,
   level: hintLevelSchema,
   text: z.string(),
+  basis: hintBasisSchema,
   sources: z.array(provenanceSchema),
   /** True when it came from the cache, so no tokens were spent. */
   cached: z.boolean(),

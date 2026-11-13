@@ -1,4 +1,6 @@
 import type {
+  HintBasis,
+  HintLevel,
   HintRequest,
   HintResponse,
   Provenance,
@@ -11,7 +13,15 @@ import type { AppContext } from '../context.ts';
 import { hintsCache } from '../db/schema/index.ts';
 import { conflict } from '../errors.ts';
 import { gameOfPlaythrough, loadMap } from './chapter-map.ts';
-import { collectWikiDocs, normalizeText, renderSources, type ContextDoc } from './wiki.ts';
+import { findGameWikis } from './maps.ts';
+import {
+  collectWikiDocs,
+  findWikiForGame,
+  isGeneralWiki,
+  normalizeText,
+  renderSources,
+  type ContextDoc,
+} from './wiki.ts';
 
 interface HintContext {
   docs: ContextDoc[];
@@ -29,7 +39,7 @@ export async function requestHint(
   playthroughId: string,
   request: HintRequest,
 ): Promise<HintResponse> {
-  const { playthrough, game } = gameOfPlaythrough(ctx.db, playthroughId);
+  const { playthrough, entry, game } = gameOfPlaythrough(ctx.db, playthroughId);
   const checkpoint =
     loadMap(ctx.db, game.id)?.checkpoints.find(
       (row) => row.id === playthrough.currentCheckpointId,
@@ -60,26 +70,51 @@ export async function requestHint(
     throw conflict('hint_level_locked', 'Open the previous hint level first');
   }
 
+  // Lower rungs already revealed: this one has to go a step further than them.
+  const previous: { level: HintLevel; text: string }[] = [];
+  for (let level = 1; level < request.level; level++) {
+    const row = stored(aiCacheKey(identity(level)));
+    const text = (row?.content as { text?: string } | undefined)?.text;
+    if (text) previous.push({ level: level as HintLevel, text });
+  }
+  const aliases = checkpoint?.aliases ?? [];
+
   const result = await runAiTask<HintContext, ReturnType<typeof hintSchema.parse>>(ctx, {
     ...identity(request.level),
     schema: hintSchema,
     maxTokens: request.level === 4 ? 1500 : 600,
     async collect() {
-      const docs = await collectWikiDocs(ctx, game.id, [
-        request.kind === 'boss' ? checkpoint?.bossName : null,
-        stuckOn && checkpoint ? `${checkpoint.name} ${stuckOn}` : stuckOn,
-        checkpoint?.name,
-      ]);
+      // The chosen wiki, unless it is Wikipedia: then the game's own wikis come first.
+      const chosen = await findWikiForGame(ctx, game.id).catch(() => null);
+      const sites =
+        chosen && !isGeneralWiki(chosen.articleBase)
+          ? [chosen]
+          : [...(await findGameWikis(ctx, game.id)), ...(chosen ? [chosen] : [])];
+      const docs = await collectWikiDocs(
+        ctx,
+        game.id,
+        [
+          request.kind === 'boss' ? checkpoint?.bossName : null,
+          stuckOn && checkpoint ? `${checkpoint.name} ${stuckOn}` : stuckOn,
+          checkpoint?.name,
+          // Short names from the route ("Church" for "Chapter 4") find the right page even
+          // when the player wrote in another language than the wiki.
+          ...aliases.slice(0, 3),
+        ],
+        4,
+        sites,
+      );
       // Guides found by the optional web search join as extra, clearly attributed sources.
       const query = [
         game.title,
+        game.releaseYear,
         checkpoint?.name,
         stuckOn,
-        request.kind === 'boss' ? 'boss guide' : 'guide',
+        request.kind === 'boss' ? 'boss guide' : request.kind === 'puzzle' ? 'puzzle' : 'guide',
       ]
         .filter(Boolean)
         .join(' ');
-      const found = await ctx.webSearch.search(query, 3).catch(() => []);
+      const found = await ctx.webSearch.search(query, 5).catch(() => []);
       for (const item of found) {
         if (!item.snippet) continue;
         docs.push({
@@ -93,14 +128,25 @@ export async function requestHint(
     },
     build: ({ docs }, budget) =>
       buildHintPrompt({
-        title: game.title,
+        game: {
+          title: game.title,
+          releaseYear: game.releaseYear,
+          alternativeTitles: game.alternativeTitles,
+          platform: playthrough.platform ?? entry.platform,
+        },
         checkpoint: checkpoint?.name ?? null,
+        checkpointAliases: aliases,
         bossName: checkpoint?.bossName ?? null,
         kind: request.kind,
         level: request.level,
         stuckOn,
+        previous,
         locale: request.locale,
-        sources: renderSources(docs, [checkpoint?.name, checkpoint?.bossName, stuckOn], budget),
+        sources: renderSources(
+          docs,
+          [checkpoint?.name, checkpoint?.bossName, stuckOn, ...aliases],
+          budget,
+        ),
       }),
   });
 
@@ -110,8 +156,11 @@ export async function requestHint(
     const used = result.output.sources
       .map((number) => docs[number - 1])
       .filter((doc) => doc !== undefined);
-    // If the model named no source, show everything it was given rather than nothing.
-    sources = (used.length > 0 ? used : docs).map((doc) => doc.provenance);
+    // A hint from the sources that names none shows everything it was given; one from what
+    // the AI knows of the game shows only what it cited, so nothing looks like its source.
+    sources = (used.length > 0 || result.output.basis === 'knowledge' ? used : docs).map(
+      (doc) => doc.provenance,
+    );
     const values = {
       cacheKey,
       gameId: game.id,
@@ -119,7 +168,7 @@ export async function requestHint(
       kind: request.kind,
       level: request.level,
       stuckOn,
-      content: { text: result.output.hint, locale: request.locale },
+      content: { text: result.output.hint, locale: request.locale, basis: result.output.basis },
       sources,
       promptVersion: HINT_PROMPT_VERSION,
       providerId: ctx.ai.getActive()?.id ?? null,
@@ -138,6 +187,7 @@ export async function requestHint(
     kind: request.kind,
     level: request.level,
     text: result.output.hint,
+    basis: result.output.basis,
     sources,
     cached: result.cached,
   };
@@ -163,6 +213,8 @@ export function listRevealedHints(
     .where(
       and(
         eq(hintsCache.gameId, game.id),
+        // Hints from an older prompt are not shown: a new version exists because they fell short.
+        eq(hintsCache.promptVersion, HINT_PROMPT_VERSION),
         checkpoint ? eq(hintsCache.checkpointId, checkpoint.id) : isNull(hintsCache.checkpointId),
       ),
     )
@@ -179,6 +231,8 @@ export function listRevealedHints(
         level: Math.min(4, Math.max(1, row.level)) as 1 | 2 | 3 | 4,
         stuckOn: row.stuckOn,
         text: (row.content as { text?: string }).text ?? '',
+        basis:
+          (row.content as { basis?: HintBasis }).basis === 'knowledge' ? 'knowledge' : 'sources',
         sources: row.sources,
       })),
     aiConnected: ctx.ai.getActive() !== null,
